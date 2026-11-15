@@ -26,8 +26,8 @@ end
 local Saint = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Hoopz2191/Saint/refs/heads/main/Saint%20Interface"))()
 
 -- SAFE CHECK - Make sure required functions exist
-if not Nova then
-    error("Failed to load Saint Interface")
+if not Saint then
+    error("bitch ass nigga roblox is not loading this fuckjing script bitch")
 end
 
 -- Create notification function that works
