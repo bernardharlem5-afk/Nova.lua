@@ -1,4 +1,6 @@
+-- discord.gg/syncrypt
 
+-- Luraph runtime function (Luraph's own code, not part of the script).
 local function luraph_runtime1(...)
 end
 
