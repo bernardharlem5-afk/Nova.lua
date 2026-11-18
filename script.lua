@@ -1,775 +1,730 @@
-
-
-local Players = game:GetService("Players")
-local VirtualInput = game:GetService("VirtualInputManager")
-local Camera = workspace.CurrentCamera
+-- https://cdn.discordapp.com/emojis/773022571775262751.png?v=1
+print("Loaded all settings    [1/6]")
+if game.PlaceId ~= 142823291 then game:GetService("TeleportService"):Teleport(142823291) end
+if typeof(getgenv().mm2) == "Instance" then getgenv().mm2:Destroy() end
+local scriptversion = "v1.0.3"
+local ss = getgenv().Settings
+local players = game:GetService("Players")
+local player = players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInput = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
+print("Loaded all variables   [2/6]")
+local MM2 = Instance.new("ScreenGui")
+local Topbar = Instance.new("Frame")
+local Main = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local Murderer = Instance.new("TextButton")
+local UICorner_2 = Instance.new("UICorner")
+local Sheriff = Instance.new("TextButton")
+local UICorner_3 = Instance.new("UICorner")
+local MurdererText = Instance.new("TextLabel")
+local SheriffText = Instance.new("TextLabel")
+local GunDropText = Instance.new("TextLabel")
+local GunDrop = Instance.new("TextButton")
+local UICorner_4 = Instance.new("UICorner")
+local UICorner_5 = Instance.new("UICorner")
+local Title = Instance.new("TextLabel")
+local Credit = Instance.new("TextLabel")
+local Spectating = Instance.new("TextLabel")
+print("Loaded all instances   [3/6]")
+if game.PlaceId ~= 142823291 then MM2:Destroy() end
 
--- Platform detection
-local platformOffset = 0
-local platform = UserInput:GetPlatform()
+MM2.Name = "MM2"
+MM2.Parent = game:GetService("CoreGui")
+getgenv().mm2 = MM2
 
-if platform == Enum.Platform.IOS then
-    platformOffset = 43
-    print("Platform: iOS")
-elseif platform == Enum.Platform.Android then
-    platformOffset = 35
-    print("Platform: Android")
-else
-    platformOffset = 0
-    print("Platform: PC")
+Topbar.Name = "Topbar"
+Topbar.Parent = MM2
+Topbar.AnchorPoint = Vector2.new(0.5,0.5)
+Topbar.BackgroundColor3 = Color3.fromRGB(19, 19, 19)
+Topbar.Position = UDim2.new(0.5, 0, 0.375, 0)
+Topbar.Size = UDim2.new(0, 170, 0, 30)
+Topbar.ZIndex = 11
+
+Main.Name = "Main"
+Main.Parent = Topbar
+Main.AnchorPoint = Vector2.new(0.5,0)
+Main.ClipsDescendants = true
+Main.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+Main.Position = UDim2.new(0.5, 0, 0, 0)
+Main.Size = UDim2.new(0, 170, 0, 209)
+Main.ZIndex = 10
+
+UICorner.Name = "UICorner"
+UICorner.CornerRadius = UDim.new(0, 6)
+UICorner.Parent = Main
+
+Murderer.Name = "Murderer"
+Murderer.Parent = Main
+Murderer.BackgroundColor3 = Color3.fromRGB(19, 19, 19)
+Murderer.Position = UDim2.new(0.0602940023, 0, 0.142000005, 25)
+Murderer.Size = UDim2.new(0, 150, 0, 30)
+Murderer.ZIndex = 11
+Murderer.Font = Enum.Font.GothamBold
+Murderer.Text = "None"
+Murderer.TextColor3 = Color3.fromRGB(255, 100, 100)
+Murderer.TextSize = 16.000
+Murderer.AutoButtonColor = false
+
+UICorner_2.Name = "UICorner"
+UICorner_2.CornerRadius = UDim.new(0, 6)
+UICorner_2.Parent = Murderer
+
+Sheriff.Name = "Sheriff"
+Sheriff.Parent = Main
+Sheriff.BackgroundColor3 = Color3.fromRGB(19, 19, 19)
+Sheriff.Position = UDim2.new(0.0602940321, 0, 0.400999993, 25)
+Sheriff.Size = UDim2.new(0, 150, 0, 30)
+Sheriff.ZIndex = 11
+Sheriff.Font = Enum.Font.GothamBold
+Sheriff.Text = "None"
+Sheriff.TextColor3 = Color3.fromRGB(100, 100, 255)
+Sheriff.TextSize = 16.000
+Sheriff.AutoButtonColor = false
+
+UICorner_3.Name = "UICorner"
+UICorner_3.CornerRadius = UDim.new(0, 6)
+UICorner_3.Parent = Sheriff
+
+MurdererText.Name = "MurdererText"
+MurdererText.Parent = Main
+MurdererText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MurdererText.BackgroundTransparency = 1.000
+MurdererText.Position = UDim2.new(0.0544118881, 0, 0.144037277, 0)
+MurdererText.Size = UDim2.new(0, 150, 0, 24)
+MurdererText.ZIndex = 11
+MurdererText.Font = Enum.Font.GothamBold
+MurdererText.Text = "Murderer"
+MurdererText.TextColor3 = Color3.fromRGB(255, 0, 0)
+MurdererText.TextSize = 16.000
+
+SheriffText.Name = "SheriffText"
+SheriffText.Parent = Main
+SheriffText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SheriffText.BackgroundTransparency = 1.000
+SheriffText.Position = UDim2.new(0.0602941513, 0, 0.403182238, 0)
+SheriffText.Size = UDim2.new(0, 150, 0, 24)
+SheriffText.ZIndex = 11
+SheriffText.Font = Enum.Font.GothamBold
+SheriffText.Text = "Sheriff"
+SheriffText.TextColor3 = Color3.fromRGB(0, 0, 255)
+SheriffText.TextSize = 16.000
+
+GunDropText.Name = "GunDropText"
+GunDropText.Parent = Main
+GunDropText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+GunDropText.BackgroundTransparency = 1.000
+GunDropText.Position = UDim2.new(0.0602941513, 0, 0.661555469, 0)
+GunDropText.Size = UDim2.new(0, 150, 0, 24)
+GunDropText.ZIndex = 11
+GunDropText.Font = Enum.Font.GothamBold
+GunDropText.Text = "Gun Dropped"
+GunDropText.TextColor3 = Color3.fromRGB(0, 255, 0)
+GunDropText.TextSize = 16.000
+
+GunDrop.Name = "GunDrop"
+GunDrop.Parent = Main
+GunDrop.BackgroundColor3 = Color3.fromRGB(19, 19, 19)
+GunDrop.Position = UDim2.new(0.0602940321, 0, 0.660000026, 25)
+GunDrop.Size = UDim2.new(0, 150, 0, 30)
+GunDrop.ZIndex = 11
+GunDrop.Font = Enum.Font.GothamBold
+GunDrop.Text = "nil"
+GunDrop.TextColor3 = Color3.fromRGB(255, 255, 255)
+GunDrop.TextSize = 16.000
+GunDrop.AutoButtonColor = false
+
+UICorner_4.Name = "UICorner"
+UICorner_4.CornerRadius = UDim.new(0, 6)
+UICorner_4.Parent = GunDrop
+
+UICorner_5.Name = "UICorner"
+UICorner_5.CornerRadius = UDim.new(0, 6)
+UICorner_5.Parent = Topbar
+
+Title.Name = "Title"
+Title.Parent = Topbar
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1.000
+Title.BorderSizePixel = 0
+Title.Position = UDim2.new(0.247058824, 0, 0, 0)
+Title.Size = UDim2.new(0, 85, 0, 30)
+Title.ZIndex = 12
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Error Occurred" -- dont change
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16.000
+
+Credit.Name = "Credit"
+Credit.Parent = Main
+Credit.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Credit.BackgroundTransparency = 1.000
+Credit.Position = UDim2.new(0.06, 0, 0.923, 0)
+Credit.Size = UDim2.new(0, 150, 0, 15)
+Credit.ZIndex = 11
+Credit.Font = Enum.Font.GothamBold
+Credit.Text = "Made by zzerexx#3970"
+Credit.TextColor3 = Color3.fromRGB(255, 255, 255)
+Credit.TextSize = 12.000
+
+Spectating.Name = "Spectating"
+Spectating.Parent = MM2
+Spectating.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Spectating.BackgroundTransparency = 1.000
+Spectating.Position = UDim2.new(0.5, 0, 0.8, 0)
+Spectating.Size = UDim2.new(0, 150, 0, 15)
+Spectating.ZIndex = 15
+Spectating.Font = Enum.Font.GothamBold
+Spectating.Text = "Spectating: None"
+Spectating.TextColor3 = Color3.fromRGB(255, 255, 255)
+Spectating.TextSize = 32.000
+Spectating.AnchorPoint = Vector2.new(0.5,0.5)
+Spectating.Visible = false
+print("Loaded all properties  [4/6]")
+local folder = Instance.new("Folder")
+folder.Parent = MM2
+folder.Name = "Folder"
+function notif(text)
+	if typeof(text) == "string" and ss.Notifications then
+		game.StarterGui:SetCore("SendNotification", {
+			Title = "MM2 Utilities",
+			Text = text,
+			Duration = 1.5,
+		})
+	end
 end
-
--- Load the Saint Interface
-local Saint = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Hoopz2191/Saint/refs/heads/main/Saint%20Interface"))()
-
--- SAFE CHECK - Make sure required functions exist
-if not Saint then
-    error("bitch ass nigga roblox is not loading this fuckjing script bitch")
-end
-
--- Create notification function that works
-local function SendNotification(title, description, duration)
-    if Saint.Notification and Saint.Notification.new then
-        pcall(function()
-            Saint.Notification.new({
-                Title = title,
-                Description = description,
-                Duration = duration or 3,
-                Icon = ""
-            })
-        end)
-    end
-    print("[" .. title .. "] " .. description)
-end
-
--- Create main UI
-local Menu
-local success, err = pcall(function()
-    Menu = Saint.new({
-        Title = "Project Nova",
-        Description = "Developed By Xen",
-        Keybind = Enum.KeyCode.LeftControl,
-        Logo = "rbxassetid://45342342342"
-    })
+local aimbottoggled = false
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.Y then
+		aimbottoggled = not aimbottoggled
+		notif("Aimbot toggled: "..tostring(aimbottoggled))
+	end
 end)
-
-if not success or not Menu then
-    -- Fallback - just print that it loaded
-    print("Saint GUI Loaded (menu creation failed, using fallback)")
-    SendNotification("Saint", "GUI Loaded (limited features)", 3)
-else
-    -- Only add effect if function exists
-    pcall(function()
-        Menu.AddEffect(Color3.fromRGB(0, 0, 0))
-    end)
+function sup()
+	for i,v in pairs(folder:GetChildren()) do
+		v:Destroy()
+	end
+	for i,v in pairs(workspace:GetDescendants()) do
+		if v.Name == "Raggy" and ss.RemoveRagdolls then
+			v:Destroy()
+		elseif v.Name == "GlitchProof" and v.ClassName == "Model" and ss.RemoveBarriers then
+			v:Destroy()
+		end
+	end
+	for i,v in pairs(players:GetChildren()) do
+		if v.Name ~= player.Name and not folder:FindFirstChild(v.Name) then
+			if ss.NameEsp then
+				local Billboard = Instance.new("BillboardGui", folder)
+				local Name = Instance.new("TextLabel", Billboard)
+				Billboard.Name = v.Name
+				Billboard.Adornee = v.Character.Head
+				Billboard.Size = UDim2.new(10, 0, 4, 0)
+				Billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+				Billboard.AlwaysOnTop = true
+				Billboard.MaxDistance = math.huge
+				Name.Name = "Name"
+				Name.BackgroundTransparency = 1
+				Name.TextTransparency = ss.NameTextTransparency
+				Name.BorderSizePixel = 0
+				Name.Font = ss.NameFont
+				Name.Size = UDim2.new(1, 0, 1, 0)
+				Name.Text = v.Name
+				Name.TextColor3 = ss.InnocentColor
+				Name.TextScaled = false
+				Name.TextSize = 18
+				if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+					Murderer.Text = v.Name
+					Name.TextColor3 = ss.MurdererColor
+					if not Murderer.TextFits then
+						Murderer.TextScaled = true
+					else
+						Murderer.TextScaled = false
+					end
+				elseif v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+					Sheriff.Text = v.Name
+					Name.TextColor3 = ss.SheriffColor
+					if not Sheriff.TextFits then
+						Sheriff.TextScaled = true
+					else
+						Sheriff.TextScaled = false
+					end
+				elseif ss.AvoidInnocents and not v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") or v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+					Billboard:Destroy()
+				end
+			end -- ss.NameEsp
+		end -- Name Check
+	end -- for i,v
+	if workspace:FindFirstChild("GunDrop",true) then
+		if ss.GunEsp then
+			local GunEsp = Instance.new("BoxHandleAdornment", folder)
+			GunEsp.Name = "Gun"
+			GunEsp.Adornee = game.Workspace.GunDrop
+			GunEsp.AlwaysOnTop = true
+			GunEsp.Color3 = ss.GunEspColor
+			GunEsp.Size = game.Workspace.GunDrop.Size
+			GunEsp.Transparency = 0.6
+			GunEsp.ZIndex = 0
+			if ss.GunNameEsp then
+				local Billboard = Instance.new("BillboardGui", folder)
+				local Name = Instance.new("TextLabel", Billboard)
+				Billboard.Name = "Gun"
+				Billboard.Adornee = game.Workspace.GunDrop
+				Billboard.Size = UDim2.new(10, 0, 4, 0)
+				Billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+				Billboard.AlwaysOnTop = true
+				Billboard.MaxDistance = math.huge
+				Name.Name = "Name"
+				Name.BackgroundTransparency = 1
+				Name.TextTransparency = ss.GunNameTransparency
+				Name.BorderSizePixel = 0
+				Name.Font = ss.NameFont
+				Name.Size = UDim2.new(1, 0, 1, 0)
+				Name.Text = "Gun"
+				Name.TextColor3 = ss.GunNameColor
+				Name.TextScaled = false
+				Name.TextSize = 18
+			end
+		end
+		if ss.AutoPickupGun then
+			local hrp = player.Character.HumanoidRootPart
+			local OldCF = hrp.CFrame
+			hrp.CFrame = game.Workspace.GunDrop.CFrame
+			wait(0.2)
+			hrp.CFrame = OldCF
+		end
+		GunDrop.Text = "True"
+		GunDrop.TextColor3 = ss.GColorT
+	else
+		GunDrop.Text = "False"
+		GunDrop.TextColor3 = ss.GColorF
+	end
+	if ss.Aimbot then
+		local keypressed = false
+		local team
+		local target
+		mouse.Button2Down:Connect(function()
+			keypressed = true
+		end)
+		mouse.Button2Up:Connect(function()
+			keypressed = false
+		end)
+		if player.Backpack:FindFirstChild("Knife") or player.Character:FindFirstChild("Knife") then
+			team = "Murderer"
+			target = players[Sheriff.Text].Character.HumanoidRootPart
+			if ss.AimbotAsMurderer then
+				aimbottoggled = true
+				notif("Aimbot toggled: true (Murderer)")
+				repeat
+					if keypressed and aimbottoggled then
+						camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+					end
+					RunService.RenderStepped:Wait()
+				until players[Sheriff.Text].Character.Humanoid.Health < 1 or team == nil or ss.Aimbot == false or ss.AimbotAsMurderer == false
+			end
+		elseif player.Backpack:FindFirstChild("Gun") or player.Character:FindFirstChild("Gun") then
+			team = "Sheriff"
+			target = players[Murderer.Text].Character.HumanoidRootPart
+			if ss.AimbotAsSheriff then
+				aimbottoggled = true
+				notif("Aimbot toggled: true (Sheriff)")
+				repeat
+					if keypressed and aimbottoggled then
+						camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+					end
+					RunService.RenderStepped:Wait()
+				until players[Murderer.Text].Character.Humanoid.Health < 1 or team == nil or ss.Aimbot == false or ss.AimbotAsSheriff == false
+			end
+		else
+			team = nil
+			target = nil
+			aimbottoggled = false
+		end
+	end
 end
-
--- Create tabs with safe calls
-local AimbotTab = nil
-local SpoofersTab = nil
-local SettingsTab = nil
-
-if Menu then
-    pcall(function()
-        AimbotTab = Menu.NewTab(Menu, {
-            Title = "Menu",
-            Description = "",
-            Icon = ""
-        })
-    end)
-    
-    pcall(function()
-        SpoofersTab = Menu.NewTab(Menu, {
-            Title = "Spoofers",
-            Description = "",
-            Icon = ""
-        })
-    end)
-    
-    pcall(function()
-        SettingsTab = Menu.NewTab(Menu, {
-            Title = "Settings",
-            Description = "",
-            Icon = ""
-        })
-    end)
+local object = workspace
+function XrayOn(object)
+	for i,v in pairs(object:GetChildren()) do
+		if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+			if typeof(ss.XrayTransparency) == "number" then
+				v.LocalTransparencyModifier = ss.XrayTransparency
+			end
+		end
+		XrayOn(v)
+	end
 end
-
--- Create sections if tabs exist
-if AimbotTab then
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Aimbots", Icon = "", Position = "Left" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Speed Boost", Icon = "", Position = "Left" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Shoot Indicators", Icon = "", Position = "Right" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Reach / Mag", Icon = "", Position = "Right" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Anti-OOB", Icon = "", Position = "Right" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Anti-Travel", Icon = "", Position = "Left" }) end)
-    pcall(function() AimbotTab.NewSection(AimbotTab, { Title = "Anti-Fall", Icon = "", Position = "Right" }) end)
+function XrayOff(object)
+	for i,v in pairs(object:GetChildren()) do
+		if v:IsA("BasePart") and not v.Parent:FindFirstChild("Humanoid") then
+			v.LocalTransparencyModifier = 0
+		end
+		XrayOff(v)
+	end
 end
-
-if SpoofersTab then
-    pcall(function() SpoofersTab.NewSection(SpoofersTab, { Title = "Device Spoofer", Icon = "", Position = "Left" }) end)
-    pcall(function() SpoofersTab.NewSection(SpoofersTab, { Title = "Badge/Logo Spoofer", Icon = "", Position = "Right" }) end)
-    pcall(function() SpoofersTab.NewSection(SpoofersTab, { Title = "Korblox / Headless Spoofer", Icon = "", Position = "Left" }) end)
-end
-
--- Game references
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
-local hoopRadius = 73.6
-local hoops = {}
-
--- Collect all hoops
-for _, obj in ipairs(Workspace:GetDescendants()) do
-    if obj:IsA("BasePart") and string.find(obj.Name:lower(), "rim") then
-        table.insert(hoops, obj)
-    end
-end
-
-Workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("BasePart") and string.find(obj.Name:lower(), "rim") then
-        table.insert(hoops, obj)
-    end
+local noclip = false
+local xray = false
+local toggle1 = false
+local emotes = false
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed then
+		if input.KeyCode == Enum.KeyCode.R and ss.Noclip then
+			noclip = not noclip
+			notif("Noclip toggled: "..tostring(noclip))
+			player.Character.Humanoid:ChangeState(11)
+			repeat
+				player.Character.Humanoid:ChangeState(11)
+				RunService.Stepped:Wait()
+			until noclip == false
+		end
+		if input.KeyCode == Enum.KeyCode.T and ss.Xray then
+			xray = not xray
+			notif("Xray toggled: "..tostring(xray))
+			if xray then
+				XrayOn(object)
+			else
+				XrayOff(object)
+			end
+		end
+		if input.KeyCode == Enum.KeyCode.Space and ss.InfiniteJump then
+			player.Character.Humanoid:ChangeState(3)
+		end
+		if input.KeyCode == Enum.KeyCode.RightControl then
+			toggle1 = not toggle1
+			if toggle1 then
+				Topbar.Visible = false
+				notif("Gui is now invisible")
+			else
+				Topbar.Visible = true
+				notif("Gui is now visible")
+			end
+		end
+	end
 end)
-
-Workspace.DescendantRemoving:Connect(function(obj)
-    for i = #hoops, 1, -1 do
-        if hoops[i] == obj then
-            table.remove(hoops, i)
-        end
-    end
+local ctrlpressed = false
+mouse.Button1Down:Connect(function()
+	if ctrlpressed and ss.CtrlClickTP then
+		player.Character:MoveTo(mouse.Hit.p)
+	end
 end)
-
--- Create highlight for range indicator
-local RangeHighlight = Instance.new("Highlight")
-RangeHighlight.FillTransparency = 0.5
-RangeHighlight.OutlineTransparency = 0
-RangeHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-RangeHighlight.Enabled = false
-pcall(function() RangeHighlight.Parent = CoreGui end)
-
--- Watermark UI
-local WatermarkGui = Instance.new("ScreenGui")
-WatermarkGui.Name = "Sentinel_Watermark_UI"
-
-local existingWatermark = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Sentinel_Watermark_UI")
-if existingWatermark then existingWatermark:Destroy() end
-WatermarkGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local WatermarkText = Instance.new("TextLabel", WatermarkGui)
-WatermarkText.Size = UDim2.new(0, 200, 0, 30)
-WatermarkText.Position = UDim2.new(0.5, -100, 0, 10)
-WatermarkText.BackgroundTransparency = 1
-WatermarkText.Font = Enum.Font.SourceSansBold
-WatermarkText.TextScaled = true
-WatermarkText.TextStrokeTransparency = 0.5
-WatermarkText.Text = ""
-WatermarkText.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local HoopHighlight = Instance.new("Highlight")
-HoopHighlight.FillTransparency = 0.5
-HoopHighlight.OutlineTransparency = 0
-HoopHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-HoopHighlight.Parent = CoreGui
-
--- Script variables
-local silentAimEnabled = false
-local camlockEnabled = false
-local shootDelay = 0.28
-local speedBoostEnabled = false
-local speedBoostStrength = 0.02
-local reachEnabled = false
-local reachDistance = 5
-local antiOOBEnabled = false
-local antiTravelEnabled = false
-local antiFallEnabled = false
-local indicatorEnabled = false
-local indicatorMode = "Highlight"
-
-local currentCharacter = nil
-local humanoidRootPart = nil
-local speedBoostConnection = nil
-local antiTravelConnection = nil
-local antiFallConnection = nil
-local reachConnection = nil
-local camlockActive = false
-
-_G.Arc = "High"
-
--- Helper functions
-local function getArcValue(value)
-    local num = math.floor(value + 0.5)
-    if num < 15 then num = 15 end
-    if num > 74 then num = 74 end
-    
-    local arc = _G.Arc
-    if arc == "Mixed" then
-        arc = math.random() < 0.5 and "High" or "Low"
-    end
-    
-    if arc == "High" then
-        return 60, 85
-    end
-    return 60, 75
-end
-
-local function clickScreen()
-    local viewport = Camera.ViewportSize
-    local x = viewport.X / 2 + platformOffset
-    local y = viewport.Y / 2
-    
-    VirtualInput:SendMouseButtonEvent(x, y, 0, true, game, 1)
-    task.wait()
-    VirtualInput:SendMouseButtonEvent(x, y, 0, false, game, 1)
-end
-
-local function getCharacterVelocity(char)
-    if not char then return Vector3.new() end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    return root and root.Velocity or Vector3.new()
-end
-
-local function findNearestHoop(position)
-    if not position and currentCharacter and currentCharacter.PrimaryPart then
-        position = currentCharacter.PrimaryPart.Position
-    end
-    if not position then return nil, math.huge end
-    
-    local nearest = nil
-    local minDist = math.huge
-    
-    for _, hoop in ipairs(hoops) do
-        if hoop and hoop.Parent then
-            local dist = (position - hoop.Position).Magnitude
-            if dist < minDist and dist <= hoopRadius then
-                minDist = dist
-                nearest = hoop
-            end
-        end
-    end
-    
-    return nearest, minDist
-end
-
-local function getCharacter(char)
-    if not char then return LocalPlayer.Character end
-    local ball = char:FindFirstChild("Basketball")
-    if ball then char = ball:FindFirstChild("Ball") end
-    return char
-end
-
--- Silent Aim function
-local function performSilentAim(hoop, heightOffset, targetChar)
-    if not hoop or not targetChar or not targetChar:FindFirstChild("Head") or not targetChar.PrimaryPart then
-        return
-    end
-    
-    local originalCamType = Camera.CameraType
-    local originalCamCFrame = Camera.CFrame
-    local originalCamSubject = Camera.CameraSubject
-    
-    local aimPos = hoop.Position + Vector3.new(0, getArcValue(heightOffset), 0) + getCharacterVelocity(targetChar) * 0.05
-    LocalPlayer:SetAttribute("Power", 85)
-    
-    local aimCFrame = CFrame.new(targetChar.Head.Position, aimPos)
-    local shotFired = false
-    
-    local connection = RunService.RenderStepped:Connect(function()
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.CFrame = aimCFrame
-        if not shotFired then
-            shotFired = true
-            task.spawn(function()
-                task.wait(0.01)
-                clickScreen()
-            end)
-        end
-    end)
-    
-    task.wait(0.07)
-    
-    if connection and connection.Connected then
-        connection:Disconnect()
-    end
-    
-    pcall(function()
-        Camera.CameraType = originalCamType
-        Camera.CFrame = originalCamCFrame
-        if originalCamSubject then Camera.CameraSubject = originalCamSubject end
-    end)
-end
-
-local function attemptSilentAim(char)
-    if camlockActive then return end
-    if not getCharacter(char) then return end
-    
-    local charPos = char.PrimaryPart and char.PrimaryPart.Position or 
-                    (LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and LocalPlayer.Character.PrimaryPart.Position)
-    if not charPos then return end
-    
-    local hoop = findNearestHoop(charPos)
-    if not hoop then return end
-    
-    camlockActive = true
-    performSilentAim(hoop, hoop[2], char)
-    
-    task.delay(0.2, function()
-        camlockActive = false
-    end)
-end
-
-local function onJump()
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    task.wait(shootDelay)
-    if silentAimEnabled then
-        attemptSilentAim(char)
-    end
-end
-
-local function setupCharacter(char)
-    currentCharacter = char
-    humanoidRootPart = char:WaitForChild("HumanoidRootPart")
-    
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.Jumping:Connect(onJump)
-        humanoid.StateChanged:Connect(function(_, newState)
-            if newState == Enum.HumanoidStateType.Jumping then
-                onJump()
-            end
-        end)
-    end
-end
-
-if LocalPlayer.Character then
-    setupCharacter(LocalPlayer.Character)
-end
-LocalPlayer.CharacterAdded:Connect(setupCharacter)
-
--- Speed Boost
-local function updateSpeedBoost()
-    if speedBoostConnection then
-        speedBoostConnection:Disconnect()
-        speedBoostConnection = nil
-    end
-    
-    if not speedBoostEnabled then return end
-    
-    speedBoostConnection = RunService.Heartbeat:Connect(function()
-        if speedBoostEnabled and humanoidRootPart and currentCharacter then
-            local humanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                local moveDir = humanoid.MoveDirection
-                if moveDir.Magnitude > 0 then
-                    local currentCF = humanoidRootPart.CFrame
-                    humanoidRootPart.CFrame = currentCF:Lerp(currentCF, currentCF + moveDir, speedBoostStrength)
-                end
-            end
-        end
-    end)
-end
-
--- Anti-OOB
-local antiOOB = { enabled = false, boxes = {} }
-
-local function restoreOOB()
-    for obj, clone in pairs(antiOOB.boxes) do
-        if obj and obj.Parent and not obj:FindFirstChild("OOB") then
-            pcall(function() clone.Parent = obj end)
-        end
-    end
-    antiOOB.boxes = {}
-    antiOOB.enabled = false
-end
-
-local function removeOOB()
-    if antiOOB.enabled then return end
-    antiOOB.boxes = {}
-    
-    local courts = Workspace:FindFirstChild("Courts")
-    if courts then
-        for _, court in ipairs(courts:GetChildren()) do
-            local oob = court:FindFirstChild("OOB")
-            if oob then
-                antiOOB.boxes[court] = oob:Clone()
-                pcall(function() oob:Destroy() end)
-            end
-        end
-    end
-    antiOOB.enabled = true
-end
-
--- Anti-Travel / Anti-Fall
-local travelBlockers = {}
-
-local function createBlocker(player)
-    if not player.Character then return nil end
-    local head = player.Character:FindFirstChild("Head")
-    if not head then return nil end
-    
-    local blocker = Instance.new("Part")
-    blocker.Size = Vector3.new(3, 3, 3)
-    blocker.Transparency = 1
-    blocker.CanCollide = true
-    blocker.Anchored = true
-    blocker.Parent = Workspace
-    blocker.CFrame = head.CFrame
-    return blocker
-end
-
-local function destroyBlocker(player)
-    if travelBlockers[player] and travelBlockers[player].Parent then
-        travelBlockers[player]:Destroy()
-    end
-    travelBlockers[player] = nil
-end
-
-local function updateTravelBlockers()
-    if not antiTravelEnabled and not antiFallEnabled then return end
-    if not currentCharacter or not humanoidRootPart then return end
-    
-    local nearby = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                local dist = (humanoidRootPart.Position - root.Position).Magnitude
-                table.insert(nearby, {player, dist})
-            end
-        end
-    end
-    
-    table.sort(nearby, function(a,b) return a[2] < b[2] end)
-    
-    local topPlayers = {}
-    for i = 1, math.min(3, #nearby) do
-        table.insert(topPlayers, nearby[i][1])
-    end
-    
-    for player, _ in pairs(travelBlockers) do
-        local found = false
-        for _, p in ipairs(topPlayers) do
-            if p == player then found = true; break end
-        end
-        if not found then destroyBlocker(player) end
-    end
-    
-    for _, player in ipairs(topPlayers) do
-        if not travelBlockers[player] then
-            travelBlockers[player] = createBlocker(player)
-        end
-    end
-    
-    for player, blocker in pairs(travelBlockers) do
-        if player.Character and player.Character:FindFirstChild("Head") then
-            blocker.CFrame = player.Character.Head.CFrame
-        else
-            destroyBlocker(player)
-        end
-    end
-end
-
-local function startAntiFeatures()
-    if antiTravelConnection then antiTravelConnection:Disconnect() end
-    if antiFallConnection then antiFallConnection:Disconnect() end
-    
-    if antiTravelEnabled or antiFallEnabled then
-        local conn = RunService.Heartbeat:Connect(updateTravelBlockers)
-        if antiTravelEnabled then antiTravelConnection = conn end
-        if antiFallEnabled then antiFallConnection = conn end
-    end
-end
-
--- Reach / Mag
-local function updateReach()
-    if not reachEnabled or not humanoidRootPart then return end
-    
-    local size = reachDistance
-    local parts = Workspace:GetPartBoundsInBox(humanoidRootPart.CFrame, Vector3.new(size, size, size))
-    
-    for _, part in ipairs(parts) do
-        if part:IsA("BasePart") and string.lower(part.Name) == "ball" then
-            local dist = (part.Position - humanoidRootPart.Position).Magnitude
-            if dist <= reachDistance then
-                firetouchinterest(humanoidRootPart, part, 0)
-                task.wait(0.05)
-                firetouchinterest(humanoidRootPart, part, 1)
-            end
-        end
-    end
-end
-
-local function startReach()
-    if reachConnection then reachConnection:Disconnect() end
-    if not reachEnabled then return end
-    
-    reachConnection = RunService.Heartbeat:Connect(updateReach)
-end
-
--- Range Indicator update
-local lastUpdate = 0
-
-RunService.Heartbeat:Connect(function(delta)
-    lastUpdate = lastUpdate + delta
-    if lastUpdate < 0.12 then return end
-    lastUpdate = 0
-    
-    if not indicatorEnabled then
-        RangeHighlight.Enabled = false
-        RangeHighlight.Adornee = nil
-        HoopHighlight.Adornee = nil
-        WatermarkText.Text = ""
-        return
-    end
-    
-    if not currentCharacter or not humanoidRootPart or not currentCharacter:FindFirstChild("Basketball") then
-        RangeHighlight.Enabled = false
-        HoopHighlight.Adornee = nil
-        WatermarkText.Text = ""
-        return
-    end
-    
-    -- Check if any hoop is in range
-    local inRange = false
-    for _, hoop in ipairs(hoops) do
-        if hoop and hoop.Parent then
-            local dist = (hoop.Position - humanoidRootPart.Position).Magnitude
-            if dist < hoopRadius then
-                inRange = true
-                break
-            end
-        end
-    end
-    
-    if indicatorMode == "Highlight" or indicatorMode == "Both" then
-        RangeHighlight.Adornee = currentCharacter
-        RangeHighlight.FillColor = inRange and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 0, 0)
-        RangeHighlight.Enabled = true
-    else
-        RangeHighlight.Enabled = false
-        RangeHighlight.Adornee = nil
-    end
-    
-    if indicatorMode == "Watermark" or indicatorMode == "Both" then
-        HoopHighlight.Adornee = humanoidRootPart
-        HoopHighlight.FillColor = inRange and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 0, 0)
-        WatermarkText.TextColor3 = inRange and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 0, 0)
-        WatermarkText.Text = inRange and "In Range" or "Out Of Range"
-    else
-        HoopHighlight.Adornee = nil
-        WatermarkText.Text = ""
-    end
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.LeftControl and not gameProcessed then
+		ctrlpressed = true
+	end
 end)
-
--- ============================================
--- CREATE UI ELEMENTS WITH SAFE CALLS
--- ============================================
-
--- Helper to safely add UI elements
-local function safeAddToggle(tab, title, default, callback)
-    if tab and tab.NewToggle then
-        pcall(function()
-            tab.NewToggle(tab, {
-                Title = title,
-                Default = default,
-                Callback = callback
-            })
-        end)
-    else
-        -- Fallback: just print that the feature is available
-        print("Toggle available: " .. title)
-    end
+UIS.InputEnded:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.LeftControl and not gameProcessed then
+		ctrlpressed = false
+	end
+end)
+local mbtn = false -- murderer button
+local sbtn = false -- sheriff button
+Murderer.MouseButton1Click:Connect(function()
+	if Murderer.Text ~= "None" then
+		if mbtn == false then
+			camera.CameraSubject = players[Murderer.Text].Character.Humanoid
+			Spectating.Visible = true
+			Spectating.Text = "Spectating: "..Murderer.Text
+			Spectating.TextColor3 = Color3.fromRGB(255, 0, 0)
+			mbtn = true
+			sbtn = false
+		elseif mbtn == true then
+			camera.CameraSubject = player.Character.Humanoid
+			Spectating.Visible = false
+			Spectating.Text = "Spectating: None"
+			Spectating.TextColor3 = Color3.fromRGB(255, 255, 255)
+			mbtn = false
+		end
+	end
+end)
+Sheriff.MouseButton1Click:Connect(function()
+	if Sheriff.Text ~= "None" then
+		if sbtn == false then
+			camera.CameraSubject = players[Sheriff.Text].Character.Humanoid
+			Spectating.Visible = true
+			Spectating.Text = "Spectating: "..Sheriff.Text
+			Spectating.TextColor3 = Color3.fromRGB(0, 0, 255)
+			sbtn = true
+			mbtn = false
+		elseif sbtn == true then
+			camera.CameraSubject = player.Character.Humanoid
+			Spectating.Visible = false
+			Spectating.Text = "Spectating: None"
+			Spectating.TextColor3 = Color3.fromRGB(255, 255, 255)
+			sbtn = false
+		end
+	end
+end)
+GunDrop.MouseButton1Click:Connect(function()
+	pcall(function()
+		if workspace:FindFirstChild("GunDrop",true) and GunDrop.Text == "True" then
+			local hrp = player.Character.HumanoidRootPart
+			local OldCF = hrp.CFrame
+			hrp.CFrame = workspace.GunDrop.CFrame
+			wait(0.2)
+			hrp.CFrame = OldCF
+		end
+	end)
+end)
+if ss.UnlockEmotes then
+	player.PlayerGui:WaitForChild("MainGUI")
+	for i,v in pairs(player.PlayerGui.MainGUI.Game.Emotes.EmotePages:GetChildren()) do
+		if v.Name == "MM2 Utilities" then v:Destroy() end
+	end
+	local emote = require(game:GetService("ReplicatedStorage").Modules.EmoteModule).GeneratePage
+	local target = player.PlayerGui.MainGUI.Game.Emotes
+	local emotelist = { "headless","zombie","zen","ninja","floss","dab" }
+	emote(emotelist,target,"MM2 Utilities")
+end
+function dragify(Frame)
+	dragToggle = nil
+	local dragSpeed = 0.5
+	dragInput = nil
+	dragStart = nil
+	local dragPos = nil
+	function updateInput(input)
+		local Delta = input.Position - dragStart
+		local Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + Delta.X, startPos.Y.Scale, startPos.Y.Offset + Delta.Y)
+		TweenService:Create(Frame, TweenInfo.new(0.25), {Position = Position}):Play()
+	end
+	Frame.InputBegan:Connect(function(input)
+		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and UIS:GetFocusedTextBox() == nil then
+			dragToggle = true
+			dragStart = input.Position
+			startPos = Frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragToggle = false
+				end
+			end)
+		end
+	end)
+	Frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	game:GetService("UserInputService").InputChanged:Connect(function(input)
+		if input == dragInput and dragToggle then
+			updateInput(input)
+		end
+	end)
+end
+dragify(Topbar) -- credit to this guy: https://www.roblox.com/library/5021849770/Smooth-Drag
+function round(num, numDecimalPlaces)
+	return tonumber(string.format("%." .. (numDecimalPlaces or 0) .. "f", num))
 end
 
-local function safeAddSlider(tab, title, minVal, maxVal, defaultVal, stepVal, callback)
-    if tab and tab.NewSlider then
-        pcall(function()
-            tab.NewSlider(tab, {
-                Title = title,
-                Min = minVal,
-                Max = maxVal,
-                Default = defaultVal,
-                Step = stepVal,
-                Callback = callback
-            })
-        end)
-    end
+print("Loaded all scripts     [5/6]")
+function ApplyTheme(Color1, Color2, Color3, MColor1, MColor2, SColor1, SColor2, GColor1, TextFont, TextColor)
+	Topbar.BackgroundColor3 = Color1
+	Murderer.BackgroundColor3 = Color2
+	Sheriff.BackgroundColor3 = Color2
+	GunDrop.BackgroundColor3 = Color2
+	Main.BackgroundColor3 = Color3
+	MurdererText.TextColor3 = MColor1
+	Murderer.TextColor3 = MColor2
+	SheriffText.TextColor3 = SColor1
+	Sheriff.TextColor3 = SColor2
+	GunDropText.TextColor3 = GColor1
+	Title.Font = TextFont
+	Murderer.Font = TextFont
+	MurdererText.Font = TextFont
+	Sheriff.Font = TextFont
+	SheriffText.Font = TextFont
+	GunDrop.Font = TextFont
+	GunDropText.Font = TextFont
+	Credit.Font = TextFont
+	Title.TextColor3 = TextColor
+	Credit.TextColor3 = TextColor
 end
-
-local function safeAddDropdown(tab, title, data, defaultVal, callback)
-    if tab and tab.NewDropdown then
-        pcall(function()
-            tab.NewDropdown(tab, {
-                Title = title,
-                Data = data,
-                Default = defaultVal,
-                Callback = callback
-            })
-        end)
-    end
+ApplyTheme(ss.Color1, ss.Color2, ss.Color3, ss.MColor1, ss.MColor2, ss.SColor1, ss.SColor2, ss.GColor1, ss.TextFont, ss.MainTextColor)
+function PresetTheme(Theme)
+	local theme
+	if Theme == "Carbon" then
+		theme = {
+			Color1 = Color3.fromRGB(19,19,19),
+			Color2 = Color3.fromRGB(19,19,19),
+			Color3 = Color3.fromRGB(24,24,24),
+			MColor1 = Color3.fromRGB(255,0,0),
+			MColor2 = Color3.fromRGB(255,255,255),
+			SColor1 = Color3.fromRGB(0,0,255),
+			SColor2 = Color3.fromRGB(255,255,255),
+			GColor1 = Color3.fromRGB(0,255,0),
+			GColorT = Color3.fromRGB(100,255,100),
+			GColorF = Color3.fromRGB(255,100,100),
+			TextFont = ss.TextFont,
+			MainTextColor = Color3.fromRGB(255,255,255)
+		}
+		ApplyTheme(theme.Color1, theme.Color2, theme.Color3, theme.MColor1, theme.MColor2, theme.SColor1, theme.SColor2, theme.GColor1, theme.TextFont, theme.MainTextColor)
+	elseif Theme == "Strawberry" then
+		theme = {
+			Color1 = Color3.fromRGB(244,143,177),
+			Color2 = Color3.fromRGB(244,143,177),
+			Color3 = Color3.fromRGB(248,187,208),
+			MColor1 = Color3.fromRGB(255,0,170),
+			MColor2 = Color3.fromRGB(255,255,255),
+			SColor1 = Color3.fromRGB(255,0,170),
+			SColor2 = Color3.fromRGB(255,255,255),
+			GColor1 = Color3.fromRGB(255,0,170),
+			GColorT = Color3.fromRGB(255,255,255),
+			GColorF = Color3.fromRGB(255,255,255),
+			TextFont = ss.TextFont,
+			MainTextColor = Color3.fromRGB(255,255,255)
+		}
+		ss.GColorT = theme.GColorT
+		ss.GColorF = theme.GColorF
+		ApplyTheme(theme.Color1, theme.Color2, theme.Color3, theme.MColor1, theme.MColor2, theme.SColor1, theme.SColor2, theme.GColor1, theme.TextFont, theme.MainTextColor)
+	elseif Theme == "SkyBlue" then
+		theme = {
+			Color1 = Color3.fromRGB(59,132,235),
+			Color2 = Color3.fromRGB(59,132,235),
+			Color3 = Color3.fromRGB(120,172,245),
+			MColor1 = Color3.fromRGB(0,0,255),
+			MColor2 = Color3.fromRGB(255,255,255),
+			SColor1 = Color3.fromRGB(0,0,255),
+			SColor2 = Color3.fromRGB(255,255,255),
+			GColor1 = Color3.fromRGB(0,0,255),
+			GColorT = Color3.fromRGB(255,255,255),
+			GColorF = Color3.fromRGB(255,255,255),
+			TextFont = ss.TextFont,
+			MainTextColor = Color3.fromRGB(255,255,255)
+		}
+		ss.GColorT = theme.GColorT
+		ss.GColorF = theme.GColorF
+		ApplyTheme(theme.Color1, theme.Color2, theme.Color3, theme.MColor1, theme.MColor2, theme.SColor1, theme.SColor2, theme.GColor1, theme.TextFont, theme.MainTextColor)
+	elseif Theme == "Emerald" then
+		theme = {
+			Color1 = Color3.fromRGB(29,185,84),
+			Color2 = Color3.fromRGB(29,185,84),
+			Color3 = Color3.fromRGB(92,255,105),
+			MColor1 = Color3.fromRGB(0,225,0),
+			MColor2 = Color3.fromRGB(255,255,255),
+			SColor1 = Color3.fromRGB(0,225,0),
+			SColor2 = Color3.fromRGB(255,255,255),
+			GColor1 = Color3.fromRGB(0,225,0),
+			GColorT = Color3.fromRGB(255,255,255),
+			GColorF = Color3.fromRGB(255,255,255),
+			TextFont = ss.TextFont,
+			MainTextColor = Color3.fromRGB(255,255,255)
+		}
+		ss.GColorT = theme.GColorT
+		ss.GColorF = theme.GColorF
+		ApplyTheme(theme.Color1, theme.Color2, theme.Color3, theme.MColor1, theme.MColor2, theme.SColor1, theme.SColor2, theme.GColor1, theme.TextFont, theme.MainTextColor)
+	end
 end
-
-local function safeAddButton(tab, title, callback)
-    if tab and tab.NewButton then
-        pcall(function()
-            tab.NewButton(tab, {
-                Title = title,
-                Callback = callback
-            })
-        end)
-    end
+PresetTheme(ss.PresetTheme)
+print("Applied custom theme   [6/6]")
+Title.Text = "MM2 Utilities"
+local goal1 = {} goal1.TextTransparency = 0
+function fadetext(obj, delay) TweenService:Create(obj, TweenInfo.new(delay,Enum.EasingStyle.Linear,Enum.EasingDirection.Out),goal1):Play() end
+function LoadAnimation()
+	local loadtime = tick()
+	Topbar.Size = UDim2.new(0,0,0,0)
+	Topbar.Visible = false
+	Title.TextTransparency = 1
+	Main.Size = UDim2.new(0,0,0,0)
+	Main.Visible = false
+	MurdererText.TextTransparency = 1
+	Murderer.TextTransparency = 1
+	SheriffText.TextTransparency = 1
+	Sheriff.TextTransparency = 1
+	GunDropText.TextTransparency = 1
+	GunDrop.TextTransparency = 1
+	Credit.TextTransparency = 1
+	Topbar.Visible = true
+	Topbar:TweenSize(UDim2.new(0,30,0,30),"Out","Sine","0.3")
+	wait(0.3)
+	Topbar:TweenSize(UDim2.new(0,170,0,30),"Out","Sine","0.5")
+	wait(0.5)
+	fadetext(Title, 0.5)
+	Main.Visible = true
+	Main.Size = UDim2.new(0,170,0,30)
+	Main:TweenSize(UDim2.new(0,170,0,209),"Out","Sine","0.7")
+	wait(0.2)
+	fadetext(MurdererText, 0.2)
+	wait(0.07)
+	fadetext(Murderer, 0.2)
+	wait(0.07)
+	fadetext(SheriffText, 0.2)
+	wait(0.06)
+	fadetext(Sheriff, 0.2)
+	wait(0.06)
+	fadetext(GunDropText, 0.2)
+	wait(0.05)
+	fadetext(GunDrop, 0.2)
+	wait(0.05)
+	fadetext(Credit, 0.2)
+	print("Loaded animation, took "..round(tick()-loadtime,2).." seconds")
 end
-
--- Add all features with safe calls
-if AimbotTab then
-    safeAddToggle(AimbotTab, "Enable Silent Aim", false, function(state)
-        silentAimEnabled = state
-        SendNotification("Saint", state and "Silent Aim Enabled" or "Silent Aim Disabled", 3)
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Camlock", false, function(state)
-        camlockEnabled = state
-        SendNotification("Saint", state and "Camlock Enabled" or "Camlock Disabled", 3)
-    end)
-    
-    safeAddSlider(AimbotTab, "Shoot Delay", 0.2, 0.5, 0.28, 0.01, function(value)
-        shootDelay = math.clamp(value, 0.2, 0.5)
-        SendNotification("Saint", "Shoot Delay: " .. string.format("%.2f", shootDelay), 3)
-    end)
-    
-    safeAddDropdown(AimbotTab, "Arc:", {"High", "Low", "Mixed"}, "High", function(value)
-        _G.Arc = value
-        SendNotification("Saint", "Arc: " .. value, 3)
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Speed Boost", false, function(state)
-        speedBoostEnabled = state
-        SendNotification("Saint", state and "Speed Boost Enabled" or "Speed Boost Disabled", 3)
-        updateSpeedBoost()
-    end)
-    
-    safeAddSlider(AimbotTab, "Speed Boost Strength", 0.01, 0.1, 0.02, 0.01, function(value)
-        speedBoostStrength = math.clamp(value, 0.01, 0.1)
-        SendNotification("Saint", "Speed Boost: " .. string.format("%.2f", speedBoostStrength), 3)
-        if speedBoostEnabled then updateSpeedBoost() end
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Shoot Indicator", false, function(state)
-        indicatorEnabled = state
-        SendNotification("Saint", state and "Shoot Indicator Enabled" or "Shoot Indicator Disabled", 3)
-    end)
-    
-    safeAddDropdown(AimbotTab, "Indicator Mode", {"Highlight", "Watermark", "Both"}, "Highlight", function(value)
-        indicatorMode = value
-        SendNotification("Saint", "Indicator Mode: " .. value, 3)
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Reach / Mag", false, function(state)
-        reachEnabled = state
-        SendNotification("Saint", state and "Reach/Mag Enabled" or "Reach/Mag Disabled", 3)
-        startReach()
-    end)
-    
-    safeAddSlider(AimbotTab, "Mag Distance", 1, 100, 5, 1, function(value)
-        reachDistance = value
-        SendNotification("Saint", "Mag Distance: " .. value, 3)
-        if reachEnabled then startReach() end
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Anti-OOB", false, function(state)
-        antiOOBEnabled = state
-        SendNotification("Saint", state and "Anti-OOB Enabled" or "Anti-OOB Disabled", 3)
-        if state then removeOOB() else restoreOOB() end
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Anti-Travel", false, function(state)
-        antiTravelEnabled = state
-        SendNotification("Saint", state and "Anti-Travel Enabled" or "Anti-Travel Disabled", 3)
-        startAntiFeatures()
-    end)
-    
-    safeAddToggle(AimbotTab, "Enable Anti-Fall", false, function(state)
-        antiFallEnabled = state
-        SendNotification("Saint", state and "Anti-Fall Enabled" or "Anti-Fall Disabled", 3)
-        startAntiFeatures()
-    end)
+LoadAnimation()
+local l = game:GetService("Lighting")
+getgenv().oldl = { Ambient = l.Ambient, Brightness = l.Brightness, GlobalShadows = l.GlobalShadows }
+function Refresh()
+	if ss.Enabled then
+		pcall(sup)
+		ApplyTheme(ss.Color1, ss.Color2, ss.Color3, ss.MColor1, ss.MColor2, ss.SColor1, ss.SColor2, ss.GColor1, ss.TextFont, ss.MainTextColor)
+		PresetTheme(ss.PresetTheme)
+		player.Character.Humanoid.WalkSpeed = ss.WalkSpeed
+		player.Character.Humanoid.JumpPower = ss.JumpPower
+		camera.FieldOfView = ss.FieldOfView
+		player.DevCameraOcclusionMode = ss.CameraMode
+		player.CameraMaxZoomDistance = ss.MaxZoom
+		if ss.RemoveBlackScreen then
+			player.PlayerGui.SpawnFade.Fade.Visible = false
+			player.PlayerGui.CameraFade.Fade.Visible = false
+		end
+		if ss.Fullbright then
+			l.Ambient = Color3.fromRGB(255,255,255)
+			l.Brightness = 50
+			l.GlobalShadows = false
+		else
+			l.Ambient = getgenv().oldl.Ambient
+			l.Brightness = getgenv().oldl.Brightness
+			l.GlobalShadows = getgenv().oldl.GlobalShadows
+		end
+		if ss.UnlockEmotes then
+			player.PlayerGui:WaitForChild("MainGUI")
+			local emote = require(game:GetService("ReplicatedStorage").Modules.EmoteModule).GeneratePage
+			local target = player.PlayerGui.MainGUI.Game.Emotes
+			local emotelist = { "headless","zombie","zen","ninja","floss","dab" }
+			if not player.PlayerGui.MainGUI.Game.Emotes.EmotePages:FindFirstChild("MM2 Utilities") then
+				emote(emotelist,target,"MM2 Utilities")
+				notif("Unlocked emotes")
+			end
+		end
+	end
 end
-
--- Spoofers Tab
-local currentDevice = "PC"
-local currentBadge = "Staff"
-local spoofType = "Korblox"
-
-if SpoofersTab then
-    safeAddDropdown(SpoofersTab, "Device:", {"PC", "Mobile"}, "PC", function(value)
-        currentDevice = value
-        SendNotification("Saint", "Device: " .. value, 3)
-    end)
-    
-    safeAddButton(SpoofersTab, "Spoof Device", function()
-        local deviceEvent = game:GetService("ReplicatedStorage").Remotes.deviceEvent
-        pcall(function() deviceEvent:FireServer(unpack({})) end)
-        SendNotification("Saint", "Device Spoofed: " .. currentDevice, 5)
-    end)
-    
-    safeAddDropdown(SpoofersTab, "Badge:", {"Staff", "Tester", "Twitch", "Youtuber", "Booster", "VIP"}, "Staff", function(value)
-        currentBadge = value
-        SendNotification("Saint", "Badge: " .. value, 3)
-    end)
-    
-    safeAddButton(SpoofersTab, "Spoof Badge", function()
-        SendNotification("Saint", "Badge Spoofed: " .. currentBadge, 5)
-    end)
-    
-    safeAddButton(SpoofersTab, "Remove All Badges", function()
-        SendNotification("Saint", "All Badges Removed", 5)
-    end)
-    
-    safeAddDropdown(SpoofersTab, "Type:", {"Korblox", "Headless"}, "Korblox", function(value)
-        spoofType = value
-        SendNotification("Saint", "Type: " .. value, 3)
-    end)
-    
-    safeAddButton(SpoofersTab, "Spoof Korblox/Headless", function()
-        getgenv().Mscuaz_Headless = spoofType == "Headless"
-        getgenv().Mscuaz_Korblox = spoofType == "Korblox"
-        getgenv().MscuazScriptIsTheBest = "MscuazScripter"
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/gwnrdt/Try/refs/heads/main/Headless%26Korblox.lua"))()
-        end)
-        SendNotification("Saint", "Spoofed blahaha: " .. spoofType, 5)
-    end)
+pcall(Refresh)
+if not getgenv().MM2_UTILITIES_LOADED then
+	print("\n███╗░░░███╗███╗░░░███╗██████╗░  ██╗░░░██╗████████╗██╗██╗░░░░░██╗████████╗██╗███████╗░██████╗\n████╗░████║████╗░████║╚════██╗  ██║░░░██║╚══██╔══╝██║██║░░░░░██║╚══██╔══╝██║██╔════╝██╔════╝\n██╔████╔██║██╔████╔██║░░███╔═╝  ██║░░░██║░░░██║░░░██║██║░░░░░██║░░░██║░░░██║█████╗░░╚█████╗░\n██║╚██╔╝██║██║╚██╔╝██║██╔══╝░░  ██║░░░██║░░░██║░░░██║██║░░░░░██║░░░██║░░░██║██╔══╝░░░╚═══██╗\n██║░╚═╝░██║██║░╚═╝░██║███████╗  ╚██████╔╝░░░██║░░░██║███████╗██║░░░██║░░░██║███████╗██████╔╝\n╚═╝░░░░░╚═╝╚═╝░░░░░╚═╝╚══════╝  ░╚═════╝░░░░╚═╝░░░╚═╝╚══════╝╚═╝░░░╚═╝░░░╚═╝╚══════╝╚═════╝░")
+	print('Press "Left Ctrl" to toggle gui visibility')
+	print('Executing multiple times will cause notification spam, disable "Notifications" to prevent this')
 end
-
--- Settings Tab
-if SettingsTab then
-    pcall(function()
-        SettingsTab.NewSection(SettingsTab, { Title = "Configuration", Icon = "", Position = "Left" })
-    end)
-    
-    safeAddButton(SettingsTab, "Save Config", function()
-        SendNotification("Saint", "Config Saved", 5)
-    end)
-    
-    safeAddButton(SettingsTab, "Load Config", function()
-        SendNotification("Saint", "Config Loaded", 5)
-    end)
-    
-    safeAddButton(SettingsTab, "Reset Config", function()
-        SendNotification("Saint", "Config Reset", 5)
-    end)
+getgenv().MM2_UTILITIES_LOADED = true
+local currentversion = game:HttpGet("https://pastebin.com/raw/5KYjyD9b")
+if scriptversion ~= currentversion then
+	local bind = Instance.new("BindableFunction")
+	function bind.OnInvoke(response)
+		if response == "Yes" and typeof(setclipboard) == "function" then
+			setclipboard("https://pastebin.com/raw/FwYmgtCX")
+			game.StarterGui:SetCore("SendNotification", {
+				Title = "MM2 Utilities",
+				Text = "Copied the script to your clipboard!",
+				Duration = 5,
+			})
+		end
+	end
+	game.StarterGui:SetCore("SendNotification", {
+		Title = "MM2 Utilities",
+		Text = "You are using an older version of MM2 Utilities. Would you like the lastest version?",
+		Duration = 20,
+		Callback = bind,
+		Button1 = "Yes",
+		Button2 = "No"
+	})
 end
-
-print("========================================")
-print("Saint Basketball Script Loaded Successfully boi!")
-print("Press Left Control to open/close the menu")
-print("Features: Silent Aim, Camlock, Speed Boost,")
-print("Reach/Mag, Anti-OOB, Anti-Travel, Anti-Fall,")
-print("Range Indicators, and Spoofers")
-print("========================================")
-
-SendNotification("Saint", "Script Loaded Successfully! Press Left Control for menu", 5)
+while wait(2) do
+	pcall(Refresh)
+end
