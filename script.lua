@@ -56,7 +56,7 @@ local Airflow = (function()
         props.BackgroundTransparency = 1
         props.FontFace = props.FontFace or font()
         props.TextColor3 = props.TextColor3 or C.Text
-        props.TextSize = props.TextSize or 13
+        props.TextSize = props.TextSize or 14
         props.Parent = parent
         return new("TextLabel", props)
     end
@@ -72,11 +72,6 @@ local Airflow = (function()
         return LP:WaitForChild("PlayerGui")
     end
 
-    local ICONS = {
-        swords = "✦", circle = "○", activity = "∿", eye = "◉",
-        user = "♙", list = "≡", crosshair = "•",
-    }
-
     -- value (de)serialisation for configs
     local function ser(v)
         if typeof(v) == "EnumItem" then return { __key = v.Name } end
@@ -87,6 +82,38 @@ local Airflow = (function()
             return Enum.KeyCode[v.__key]
         end
         return v
+    end
+
+    -- ----- baked-in logo (embedded PNG, loaded through the executor's file functions) -----
+    local LOGO_B64 = "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"
+    local function b64decode(data)
+        local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        local lookup = {}
+        for i = 1, #chars do lookup[chars:sub(i, i)] = i - 1 end
+        data = (data:gsub("[^%w%+/=]", ""))
+        local out = {}
+        for i = 1, #data, 4 do
+            local a, b = lookup[data:sub(i, i)], lookup[data:sub(i + 1, i + 1)]
+            local c, d = lookup[data:sub(i + 2, i + 2)], lookup[data:sub(i + 3, i + 3)]
+            local n = a * 262144 + b * 4096 + (c or 0) * 64 + (d or 0)
+            out[#out + 1] = string.char(math.floor(n / 65536) % 256)
+            if c then out[#out + 1] = string.char(math.floor(n / 256) % 256) end
+            if d then out[#out + 1] = string.char(n % 256) end
+        end
+        return table.concat(out)
+    end
+    local logoAsset
+    local function getLogo()
+        if logoAsset ~= nil then return logoAsset or nil end
+        local ok, res = pcall(function()
+            local gca = getcustomasset or getsynasset
+            if not (writefile and gca) then return nil end
+            if makefolder and isfolder and not isfolder("Byte.WTF") then makefolder("Byte.WTF") end
+            writefile("Byte.WTF/logo.png", b64decode(LOGO_B64))
+            return gca("Byte.WTF/logo.png")
+        end)
+        logoAsset = (ok and res) or false
+        return logoAsset or nil
     end
 
     function Lib:CreateWindow(opts)
@@ -104,7 +131,7 @@ local Airflow = (function()
         gui.Parent = getGuiParent()
         Window.Gui = gui
 
-        local W, H = 628, 404
+        local W, H = 780, 520
         local scaleVal = 1
         local function calcScale()
             local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
@@ -122,12 +149,15 @@ local Airflow = (function()
         end
 
         -- title bar
-        local titleBar = new("Frame", { Size = UDim2.new(1, 0, 0, 46), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = root },
+        local titleBar = new("Frame", { Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = root },
             { new("UICorner", { CornerRadius = UDim.new(0, 12) }) })
         new("Frame", { Position = UDim2.new(0, 0, 1, -12), Size = UDim2.new(1, 0, 0, 12), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = titleBar })
         new("Frame", { Position = UDim2.new(0, 0, 1, -1), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = C.Stroke, BorderSizePixel = 0, Parent = titleBar })
-        text(titleBar, { Text = "☆", TextSize = 14, TextColor3 = C.Muted, Position = UDim2.fromOffset(22, 0), Size = UDim2.fromOffset(18, 46), TextXAlignment = Enum.TextXAlignment.Left })
-        text(titleBar, { Text = opts.Name or "Byte.WTF", TextSize = 14, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Position = UDim2.fromOffset(46, 0), Size = UDim2.new(1, -60, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
+        local logo = getLogo()
+        if logo then
+            new("ImageLabel", { Position = UDim2.fromOffset(24, 11), Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = titleBar })
+        end
+        text(titleBar, { Text = opts.Name or "Byte.WTF", TextSize = 16, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Position = UDim2.fromOffset(logo and 66 or 28, 0), Size = UDim2.new(1, -60, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
 
         -- dragging
         do
@@ -150,12 +180,12 @@ local Airflow = (function()
 
         -- tab bar + content area
         local tabBar = new("ScrollingFrame", {
-            Position = UDim2.fromOffset(22, 58), Size = UDim2.new(1, -44, 0, 30), BackgroundTransparency = 1, BorderSizePixel = 0,
+            Position = UDim2.fromOffset(28, 70), Size = UDim2.new(1, -56, 0, 34), BackgroundTransparency = 1, BorderSizePixel = 0,
             ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.X, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.X, Parent = root,
-        }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }) })
+        }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }) })
 
         local content = new("Frame", {
-            Position = UDim2.fromOffset(22, 100), Size = UDim2.new(1, -44, 1, -114), BackgroundTransparency = 1, Parent = root,
+            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -142), BackgroundTransparency = 1, Parent = root,
         })
 
         -- overlay for dropdown popups
@@ -170,17 +200,64 @@ local Airflow = (function()
         -- toggle keybind + mobile button
         local toggleKey = opts.ToggleUIKeybind
         if type(toggleKey) == "string" then toggleKey = Enum.KeyCode[toggleKey] end
-        local function toggleUI() closePopup(); root.Visible = not root.Visible end
+        local uiReady = true
+        local function toggleUI() if not uiReady then return end closePopup(); root.Visible = not root.Visible end
         UIS.InputBegan:Connect(function(i, gp)
             if gp then return end
             if toggleKey and i.KeyCode == toggleKey then toggleUI() end
         end)
         if isMobile then
             local b = new("TextButton", {
-                Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0, 14, 0.5, -20), BackgroundColor3 = C.Panel, Text = "☆",
-                TextColor3 = C.Accent, TextSize = 18, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = gui,
+                Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0, 14, 0.5, -20), BackgroundColor3 = C.Panel, Text = "UI",
+                TextColor3 = C.Accent, TextSize = 14, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = gui,
             }, { corner(20), stroke(C.StrokeLt) })
+            if logo then
+                b.Text = ""
+                new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = logo, Parent = b })
+            end
             b.MouseButton1Click:Connect(toggleUI)
+        end
+
+        -- loading screen
+        if opts.LoadingEnabled ~= false then
+            uiReady = false
+            root.Visible = false
+            local yOff = logo and 0 or -34
+            local loader = new("CanvasGroup", {
+                AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(380, 232 + yOff),
+                BackgroundColor3 = C.Window, BorderSizePixel = 0, GroupTransparency = 1, Parent = gui,
+            }, { corner(14), stroke(C.Stroke), new("UIScale", { Scale = uiScale.Scale }) })
+            if logo then
+                new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 28), Size = UDim2.fromOffset(64, 64), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = loader })
+            end
+            text(loader, { Text = opts.Name or "Byte.WTF", TextSize = 22, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Position = UDim2.fromOffset(0, 102 + yOff), Size = UDim2.new(1, 0, 0, 28) })
+            text(loader, { Text = opts.LoadingSubtitle or "Loading", TextSize = 13, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 132 + yOff), Size = UDim2.new(1, 0, 0, 20) })
+            local barTrack = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 174 + yOff), Size = UDim2.fromOffset(280, 6), BackgroundColor3 = Color3.fromRGB(34, 34, 43), BorderSizePixel = 0, Parent = loader }, { corner(3) })
+            local barFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = barTrack }, {
+                corner(3), new("UIGradient", { Color = ColorSequence.new(C.AccentDk, C.Accent) }),
+            })
+            local statusLbl = text(loader, { Text = "Initializing", TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 190 + yOff), Size = UDim2.new(1, 0, 0, 20) })
+
+            task.spawn(function()
+                tween(loader, 0.3, { GroupTransparency = 0 })
+                local steps = {
+                    { "Initializing", 0.18 }, { "Loading modules", 0.46 }, { "Building interface", 0.76 },
+                    { "Applying theme", 0.93 }, { "Ready", 1 },
+                }
+                for _, st in ipairs(steps) do
+                    statusLbl.Text = st[1]
+                    tween(barFill, 0.4, { Size = UDim2.fromScale(st[2], 1) })
+                    task.wait(0.45)
+                end
+                task.wait(0.2)
+                tween(loader, 0.3, { GroupTransparency = 1 })
+                task.wait(0.32)
+                loader:Destroy()
+                uiScale.Scale = calcScale() * 0.94
+                root.Visible = true
+                uiReady = true
+                tween(uiScale, 0.22, { Scale = calcScale() })
+            end)
         end
 
         -- notifications
@@ -239,12 +316,11 @@ local Airflow = (function()
         function Window:CreateTab(p)
             p = p or {}
             local Tab = { Panels = {}, Order = 0 }
-            local icon = ICONS[p.Icon or ""] or "•"
             local btn = new("TextButton", {
-                Text = icon .. "  " .. (p.Name or "Tab"), AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 28),
-                BackgroundColor3 = C.Panel, TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 12, FontFace = font(Enum.FontWeight.Medium),
+                Text = p.Name or "Tab", AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 34),
+                BackgroundColor3 = C.Panel, TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, FontFace = font(Enum.FontWeight.Medium),
                 AutoButtonColor = false, LayoutOrder = #tabs + 1, Parent = tabBar,
-            }, { corner(7), pad(12, 0, 12, 0) })
+            }, { corner(8), pad(20, 0, 20, 0) })
             local bs = stroke(C.Stroke); bs.Parent = btn
             Tab.Btn, Tab.BtnStroke = btn, bs
 
@@ -257,10 +333,10 @@ local Airflow = (function()
             local function column(x, w)
                 return new("Frame", {
                     Position = x, Size = w, AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = page,
-                }, { new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
+                }, { new("UIListLayout", { Padding = UDim.new(0, 16), SortOrder = Enum.SortOrder.LayoutOrder }) })
             end
-            local colL = column(UDim2.fromOffset(0, 0), UDim2.new(0.5, -6, 0, 0))
-            local colR = column(UDim2.new(0.5, 6, 0, 0), UDim2.new(0.5, -6, 0, 0))
+            local colL = column(UDim2.fromOffset(0, 0), UDim2.new(0.5, -8, 0, 0))
+            local colR = column(UDim2.new(0.5, 8, 0, 0), UDim2.new(0.5, -8, 0, 0))
 
             local pending = false
             local function relayout()
@@ -274,10 +350,10 @@ local Airflow = (function()
                         if pn.Pin == "Right" then toRight = true
                         elseif pn.Pin == "Left" then toRight = false
                         else toRight = hR < hL end
-                        local h = 44 + pn.Est
+                        local h = 60 + pn.Est
                         pn.Frame.LayoutOrder = i
                         pn.Frame.Parent = toRight and colR or colL
-                        if toRight then hR = hR + h + 10 else hL = hL + h + 10 end
+                        if toRight then hR = hR + h + 16 else hL = hL + h + 16 end
                     end
                 end)
             end
@@ -285,8 +361,8 @@ local Airflow = (function()
             local function newPanel(name, pin)
                 local f = new("Frame", {
                     Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.Panel, BorderSizePixel = 0,
-                }, { corner(9), stroke(C.Stroke), pad(14, 14, 14, 14), new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-                text(f, { Text = string.upper(name), TextSize = 11, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Header, Size = UDim2.new(1, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 0 })
+                }, { corner(10), stroke(C.Stroke), pad(20, 20, 20, 20), new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) })
+                text(f, { Text = string.upper(name), TextSize = 12, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Header, Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 0 })
                 local pn = { Frame = f, Est = 0, Pin = pin, Order = 0 }
                 table.insert(Tab.Panels, pn)
                 relayout()
@@ -295,7 +371,7 @@ local Airflow = (function()
 
             local function addItem(pn, h)
                 pn.Order = pn.Order + 1
-                pn.Est = pn.Est + h + 8
+                pn.Est = pn.Est + h + 14
                 relayout()
                 return pn.Order
             end
@@ -309,20 +385,20 @@ local Airflow = (function()
 
             function B.Toggle(pn, o)
                 local hasDesc = o.Desc and o.Desc ~= ""
-                local h = hasDesc and 42 or 28
+                local h = hasDesc and 54 or 34
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Toggle", Position = UDim2.fromOffset(0, hasDesc and 3 or 0), Size = UDim2.new(1, -50, 0, hasDesc and 18 or h), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Toggle", Position = UDim2.fromOffset(0, hasDesc and 2 or 0), Size = UDim2.new(1, -60, 0, hasDesc and 22 or h), TextXAlignment = Enum.TextXAlignment.Left })
                 if hasDesc then
-                    text(row, { Text = o.Desc, TextSize = 11, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 21), Size = UDim2.new(1, -50, 0, 16), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
+                    text(row, { Text = o.Desc, TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, -60, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
                 end
-                local track = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(36, 20), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(10) })
-                local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 3, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = Color3.fromRGB(150, 150, 162), BorderSizePixel = 0, Parent = track }, { corner(7) })
+                local track = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(42, 24), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(12) })
+                local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = Color3.fromRGB(150, 150, 162), BorderSizePixel = 0, Parent = track }, { corner(8) })
                 local hit = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", Parent = row })
                 local state = o.CurrentValue == true
                 local obj = {}
                 local function render(animate)
                     local tp = { BackgroundColor3 = state and C.ToggleOn or C.ToggleOff }
-                    local kp = { Position = state and UDim2.new(1, -17, 0.5, 0) or UDim2.new(0, 3, 0.5, 0), BackgroundColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(150, 150, 162) }
+                    local kp = { Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 4, 0.5, 0), BackgroundColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(150, 150, 162) }
                     if animate then tween(track, 0.15, tp); tween(knob, 0.15, kp)
                     else for k, v in pairs(tp) do track[k] = v end for k, v in pairs(kp) do knob[k] = v end end
                 end
@@ -340,21 +416,21 @@ local Airflow = (function()
             end
 
             function B.Slider(pn, o)
-                local h = 42
+                local h = 54
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Slider", Size = UDim2.new(0.65, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Left })
-                local valLbl = text(row, { Text = "", TextSize = 12, TextColor3 = C.Muted, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.35, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Right })
+                text(row, { Text = o.Name or "Slider", Size = UDim2.new(0.65, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left })
+                local valLbl = text(row, { Text = "", TextSize = 13, TextColor3 = C.Muted, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.35, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Right })
                 local min, max = (o.Range and o.Range[1]) or 0, (o.Range and o.Range[2]) or 100
                 local inc = o.Increment or 1
                 local dec = #((tostring(inc):match("%.(%d+)")) or "")
                 local suffix = (o.Suffix and o.Suffix ~= "") and (" " .. o.Suffix) or ""
-                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 31), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = Color3.fromRGB(38, 38, 48), BorderSizePixel = 0, Parent = row }, { corner(2) })
+                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 38), Size = UDim2.new(1, 0, 0, 5), BackgroundColor3 = Color3.fromRGB(38, 38, 48), BorderSizePixel = 0, Parent = row }, { corner(2) })
                 local fill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = track }, {
                     corner(2),
                     new("UIGradient", { Color = ColorSequence.new(C.AccentDk, C.Accent) }),
                 })
-                local knob = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 2, Parent = track }, { corner(6), stroke(C.Accent, 2) })
-                local hit = new("TextButton", { Position = UDim2.new(0, 0, 0, 22), Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, Text = "", Parent = row })
+                local knob = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 2, Parent = track }, { corner(7), stroke(C.Accent, 2) })
+                local hit = new("TextButton", { Position = UDim2.new(0, 0, 0, 28), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Text = "", Parent = row })
 
                 local value = math.clamp(o.CurrentValue or min, min, max)
                 local obj = {}
@@ -400,15 +476,20 @@ local Airflow = (function()
             end
 
             function B.Dropdown(pn, o)
-                local h = 28
+                local h = 36
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Dropdown", Size = UDim2.new(1, -150, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Dropdown", Size = UDim2.new(1, -176, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
                 local box = new("TextButton", {
-                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(140, 26),
+                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(164, 32),
                     BackgroundColor3 = C.Field, Text = "", AutoButtonColor = false, Parent = row,
-                }, { corner(6), stroke(C.Stroke) })
-                local valLbl = text(box, { Text = "", TextSize = 12, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -28, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
-                text(box, { Text = "▾", TextSize = 11, TextColor3 = C.Muted, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 0), Size = UDim2.fromOffset(12, 26) })
+                }, { corner(7), stroke(C.Stroke) })
+                local valLbl = text(box, { Text = "", TextSize = 13, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -36, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
+                do -- chevron drawn from two thin bars (no font glyphs)
+                    local chev = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(10, 6), BackgroundTransparency = 1, Parent = box })
+                    for _, d in ipairs({ { 3, 40 }, { 7, -40 } }) do
+                        new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(d[1], 3), Size = UDim2.fromOffset(7, 2), Rotation = d[2], BackgroundColor3 = C.Muted, BorderSizePixel = 0, Parent = chev }, { corner(1) })
+                    end
+                end
 
                 local options = o.Options or {}
                 local current = o.CurrentValue
@@ -437,7 +518,7 @@ local Airflow = (function()
                     end
                     local s = uiScale.Scale
                     local shown = math.min(#options, 6)
-                    local ph = math.max(shown, 1) * 26 + 8
+                    local ph = math.max(shown, 1) * 32 + 10
                     local pop = new("Frame", {
                         Position = UDim2.fromOffset(box.AbsolutePosition.X, box.AbsolutePosition.Y + box.AbsoluteSize.Y + 4),
                         Size = UDim2.fromOffset(box.AbsoluteSize.X / s, ph), BackgroundColor3 = C.Field, BorderSizePixel = 0, ZIndex = 51, Parent = overlay,
@@ -445,16 +526,16 @@ local Airflow = (function()
                     local list = new("ScrollingFrame", {
                         Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2,
                         ScrollBarImageColor3 = C.StrokeLt, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 52, Parent = pop,
-                    }, { pad(4, 4, 4, 4), new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder }) })
+                    }, { pad(5, 5, 5, 5), new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder }) })
                     if #options == 0 then
-                        text(list, { Text = "No options", TextSize = 12, TextColor3 = C.Muted, Size = UDim2.new(1, 0, 0, 26), ZIndex = 53 })
+                        text(list, { Text = "No options", TextSize = 12, TextColor3 = C.Muted, Size = UDim2.new(1, 0, 0, 32), ZIndex = 53 })
                     end
                     for i, name in ipairs(options) do
                         local b = new("TextButton", {
-                            Size = UDim2.new(1, 0, 0, 26), BackgroundColor3 = C.TabOn, BackgroundTransparency = 1, Text = tostring(name),
-                            TextColor3 = (name == current) and C.Accent or C.Text, TextSize = 12, FontFace = font(), AutoButtonColor = false,
+                            Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = C.TabOn, BackgroundTransparency = 1, Text = tostring(name),
+                            TextColor3 = (name == current) and C.Accent or C.Text, TextSize = 13, FontFace = font(), AutoButtonColor = false,
                             TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = i, ZIndex = 53, Parent = list,
-                        }, { corner(5), pad(8, 0, 8, 0) })
+                        }, { corner(6), pad(10, 0, 10, 0) })
                         b.MouseEnter:Connect(function() b.BackgroundTransparency = 0 end)
                         b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
                         b.MouseButton1Click:Connect(function() closePopup(); obj:Set(name) end)
@@ -467,12 +548,12 @@ local Airflow = (function()
             end
 
             function B.Keybind(pn, o)
-                local h = 28
+                local h = 36
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Keybind", Size = UDim2.new(1, -110, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Keybind", Size = UDim2.new(1, -130, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
                 local box = new("TextButton", {
-                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(96, 24),
-                    BackgroundColor3 = C.Field, TextColor3 = C.Text, TextSize = 12, FontFace = font(), AutoButtonColor = false, Text = "", Parent = row,
+                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(112, 30),
+                    BackgroundColor3 = C.Field, TextColor3 = C.Text, TextSize = 13, FontFace = font(), AutoButtonColor = false, Text = "", Parent = row,
                 }, { corner(6), stroke(C.Stroke) })
                 local key = o.CurrentValue
                 if type(key) == "string" then key = Enum.KeyCode[key] end
@@ -502,14 +583,14 @@ local Airflow = (function()
             end
 
             function B.Input(pn, o)
-                local h = 56
+                local h = 72
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Input", Size = UDim2.new(1, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Input", Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left })
                 local tb = new("TextBox", {
-                    Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = C.Field, Text = tostring(o.CurrentValue or ""),
+                    Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = C.Field, Text = tostring(o.CurrentValue or ""),
                     PlaceholderText = o.Placeholder or "", PlaceholderColor3 = Color3.fromRGB(100, 100, 112), TextColor3 = C.Text,
-                    TextSize = 12, FontFace = font(), ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
-                }, { corner(6), stroke(C.Stroke), pad(10, 0, 10, 0) })
+                    TextSize = 13, FontFace = font(), ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
+                }, { corner(7), stroke(C.Stroke), pad(12, 0, 12, 0) })
                 local obj = {}
                 function obj:Set(v) tb.Text = tostring(v or "") end
                 function obj:Get() return tb.Text end
@@ -527,8 +608,8 @@ local Airflow = (function()
                 local primary = (b.Style ~= "Secondary")
                 local btn = new("TextButton", {
                     Size = size, Position = pos or UDim2.new(), BackgroundColor3 = primary and C.Accent or C.Field, Text = b.Name or "Button",
-                    TextColor3 = primary and C.BtnDark or C.Text, TextSize = 12, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = parent,
-                }, { corner(6) })
+                    TextColor3 = primary and C.BtnDark or C.Text, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = parent,
+                }, { corner(7) })
                 if not primary then stroke(C.Stroke).Parent = btn end
                 local base = btn.BackgroundColor3
                 btn.MouseEnter:Connect(function() tween(btn, 0.1, { BackgroundColor3 = primary and Color3.fromRGB(128, 186, 255) or Color3.fromRGB(32, 32, 40) }) end)
@@ -538,7 +619,7 @@ local Airflow = (function()
             end
 
             function B.Button(pn, o)
-                local h = 32
+                local h = 40
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
                 makeButton(row, o, UDim2.fromScale(1, 1))
                 return {}
@@ -546,13 +627,13 @@ local Airflow = (function()
 
             -- { {Name=, Callback=, Style=}, {...} }  (first button wide, rest narrow, like the screenshot)
             function B.ButtonRow(pn, list)
-                local h = 32
+                local h = 40
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
+                new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
                 local n = #list
                 for i, b in ipairs(list) do
                     local w = (n == 1) and UDim2.fromScale(1, 1)
-                        or (i == 1 and UDim2.new(0.62, -4, 1, 0) or UDim2.new(0.38 / (n - 1), -4, 1, 0))
+                        or (i == 1 and UDim2.new(0.62, -5, 1, 0) or UDim2.new(0.38 / (n - 1), -5, 1, 0))
                     local btn = makeButton(row, b, w)
                     btn.LayoutOrder = i
                 end
@@ -560,9 +641,9 @@ local Airflow = (function()
             end
 
             function B.Label(pn, o)
-                local h = 18
+                local h = 22
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                local l = text(row, { Text = o.Name or o.Text or "", TextSize = 12, TextColor3 = C.Muted, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Left })
+                local l = text(row, { Text = o.Name or o.Text or "", TextSize = 13, TextColor3 = C.Muted, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Left })
                 return { Set = function(_, t) l.Text = t end }
             end
 
@@ -3324,12 +3405,18 @@ end)
             if typeof(key) == "EnumItem" then s.Shooting.AuralKeybind = key end
         end,
     })
+    CombatTab:CreateToggle({
+        Name = "EBL Hop", Desc = "Require second jump before firing.",
+        Flag = "bytewtf_ebl", CurrentValue = s.Shooting.EBLHop,
+        Callback = function(v) s.Shooting.EBLHop = v end,
+    })
     CombatTab:CreateSlider({
         Name = "Shot delay",
         Range = { 0.15, 0.42 }, Increment = 0.01, Suffix = "s",
         CurrentValue = s.Shooting.ShotDelay, Flag = "bytewtf_delay",
         Callback = function(v) s.Shooting.ShotDelay = v end,
     })
+    CombatTab:CreateSection("Shot Timing")
     CombatTab:CreateToggle({
         Name = "Randomize shot delay", Flag = "bytewtf_randdelay",
         CurrentValue = s.Shooting.RandomizeShotDelay,
@@ -3345,11 +3432,7 @@ end)
         CurrentValue = s.Shooting.ShotDelayMax, Flag = "bytewtf_maxdelay",
         Callback = function(v) s.Shooting.ShotDelayMax = v end,
     })
-    CombatTab:CreateToggle({
-        Name = "EBL Hop", Desc = "Require second jump before firing.",
-        Flag = "bytewtf_ebl", CurrentValue = s.Shooting.EBLHop,
-        Callback = function(v) s.Shooting.EBLHop = v end,
-    })
+    CombatTab:CreateSection("Humanize")
     CombatTab:CreateToggle({
         Name = "Humanize aim", Flag = "bytewtf_human",
         CurrentValue = s.Shooting.HumanizeAim,
@@ -3365,100 +3448,6 @@ end)
         CurrentValue = s.Shooting.MissChance, Flag = "bytewtf_miss",
         Callback = function(v) s.Shooting.MissChance = v end,
     })
-
-    -- ============================================================
-    -- PLAYER MORPH (client-side avatar change)
-    -- ============================================================
-    do
-        CombatTab:CreateSection({ Name = "Player Morph", Column = "Right" })
-        local morphOriginal
-        local typedName = ""
-        local pickedPlayer
-
-        local function morphNotify(t, c)
-            pcall(function() Notify({ title = t, content = c, duration = 3 }) end)
-        end
-
-        local function applyUser(userId)
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if not hum then return false, "No character found." end
-            if not morphOriginal then
-                local okO, d = pcall(function() return hum:GetAppliedDescription() end)
-                if okO then morphOriginal = d end
-            end
-            local ok, desc = pcall(function() return Players:GetHumanoidDescriptionFromUserId(userId) end)
-            if not ok or not desc then return false, "Couldn't load that avatar." end
-            local ok2, err = pcall(function() hum:ApplyDescriptionReset(desc) end)
-            if not ok2 then return false, tostring(err) end
-            return true
-        end
-
-        local function resetAvatar()
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if not hum then return false, "No character found." end
-            local desc = morphOriginal
-            if not desc then
-                local ok, d = pcall(function() return Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId) end)
-                if ok then desc = d end
-            end
-            if not desc then return false, "Couldn't load your avatar." end
-            local ok2, err = pcall(function() hum:ApplyDescriptionReset(desc) end)
-            if not ok2 then return false, tostring(err) end
-            return true
-        end
-
-        local function doReset()
-            task.spawn(function()
-                local ok, why = resetAvatar()
-                morphNotify("Player Morph", ok and "Avatar reset." or (why or "Reset failed."))
-            end)
-        end
-
-        CombatTab:CreateInput({
-            Name = "Username", Placeholder = "any Roblox username",
-            CurrentValue = "", Flag = "bytewtf_morph_name",
-            Callback = function(t) typedName = t end,
-        })
-        CombatTab:CreateButtonRow({
-            { Name = "Morph into username", Callback = function()
-                task.spawn(function()
-                    local name = typedName
-                    if not name or name == "" then morphNotify("Player Morph", "Enter a username first.") return end
-                    local ok, id = pcall(function() return Players:GetUserIdFromNameAsync(name) end)
-                    if not ok or not id then morphNotify("Player Morph", "User not found.") return end
-                    local done, why = applyUser(id)
-                    morphNotify("Player Morph", done and ("Morphed into " .. name) or (why or "Morph failed."))
-                end)
-            end },
-            { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
-        })
-        CombatTab:CreateDivider()
-        CombatTab:CreateDropdown({
-            Name = "Select player", Placeholder = "In this server", Options = {},
-            Dynamic = function()
-                local list = {}
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer then table.insert(list, p.Name) end
-                end
-                table.sort(list)
-                return list
-            end,
-            Callback = function(v) pickedPlayer = v end,
-        })
-        CombatTab:CreateButtonRow({
-            { Name = "Morph into player", Callback = function()
-                task.spawn(function()
-                    local plr = pickedPlayer and Players:FindFirstChild(pickedPlayer)
-                    if not plr then morphNotify("Player Morph", "Pick a player first.") return end
-                    local done, why = applyUser(plr.UserId)
-                    morphNotify("Player Morph", done and ("Morphed into " .. plr.Name) or (why or "Morph failed."))
-                end)
-            end },
-            { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
-        })
-    end
 
     CombatTab:CreateSection("Auto Guard")
     CombatTab:CreateToggle({
@@ -3745,6 +3734,101 @@ end)
             applyOwnNameplate()
         end,
     })
+
+
+    -- ============================================================
+    -- PLAYER MORPH (client-side avatar change)
+    -- ============================================================
+    do
+        VisualsTab:CreateSection("Player Morph")
+        local morphOriginal
+        local typedName = ""
+        local pickedPlayer
+
+        local function morphNotify(t, c)
+            pcall(function() Notify({ title = t, content = c, duration = 3 }) end)
+        end
+
+        local function applyUser(userId)
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if not hum then return false, "No character found." end
+            if not morphOriginal then
+                local okO, d = pcall(function() return hum:GetAppliedDescription() end)
+                if okO then morphOriginal = d end
+            end
+            local ok, desc = pcall(function() return Players:GetHumanoidDescriptionFromUserId(userId) end)
+            if not ok or not desc then return false, "Couldn't load that avatar." end
+            local ok2, err = pcall(function() hum:ApplyDescriptionReset(desc) end)
+            if not ok2 then return false, tostring(err) end
+            return true
+        end
+
+        local function resetAvatar()
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if not hum then return false, "No character found." end
+            local desc = morphOriginal
+            if not desc then
+                local ok, d = pcall(function() return Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId) end)
+                if ok then desc = d end
+            end
+            if not desc then return false, "Couldn't load your avatar." end
+            local ok2, err = pcall(function() hum:ApplyDescriptionReset(desc) end)
+            if not ok2 then return false, tostring(err) end
+            return true
+        end
+
+        local function doReset()
+            task.spawn(function()
+                local ok, why = resetAvatar()
+                morphNotify("Player Morph", ok and "Avatar reset." or (why or "Reset failed."))
+            end)
+        end
+
+        VisualsTab:CreateInput({
+            Name = "Username", Placeholder = "any Roblox username",
+            CurrentValue = "", Flag = "bytewtf_morph_name",
+            Callback = function(t) typedName = t end,
+        })
+        VisualsTab:CreateButtonRow({
+            { Name = "Morph into username", Callback = function()
+                task.spawn(function()
+                    local name = typedName
+                    if not name or name == "" then morphNotify("Player Morph", "Enter a username first.") return end
+                    local ok, id = pcall(function() return Players:GetUserIdFromNameAsync(name) end)
+                    if not ok or not id then morphNotify("Player Morph", "User not found.") return end
+                    local done, why = applyUser(id)
+                    morphNotify("Player Morph", done and ("Morphed into " .. name) or (why or "Morph failed."))
+                end)
+            end },
+            { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
+        })
+        VisualsTab:CreateDivider()
+        VisualsTab:CreateDropdown({
+            Name = "Select player", Placeholder = "In this server", Options = {},
+            Dynamic = function()
+                local list = {}
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer then table.insert(list, p.Name) end
+                end
+                table.sort(list)
+                return list
+            end,
+            Callback = function(v) pickedPlayer = v end,
+        })
+        VisualsTab:CreateButtonRow({
+            { Name = "Morph into player", Callback = function()
+                task.spawn(function()
+                    local plr = pickedPlayer and Players:FindFirstChild(pickedPlayer)
+                    if not plr then morphNotify("Player Morph", "Pick a player first.") return end
+                    local done, why = applyUser(plr.UserId)
+                    morphNotify("Player Morph", done and ("Morphed into " .. plr.Name) or (why or "Morph failed."))
+                end)
+            end },
+            { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
+        })
+    end
 
     PrivacyTab:CreateSection("Device Spoofer")
     PrivacyTab:CreateToggle({
