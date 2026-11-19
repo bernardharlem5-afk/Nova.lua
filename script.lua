@@ -7,6 +7,7 @@
 -- ============================================================
 local Airflow = (function()
     local Players          = game:GetService("Players")
+
     local UIS              = game:GetService("UserInputService")
     local TweenService     = game:GetService("TweenService")
     local HttpService      = game:GetService("HttpService")
@@ -131,7 +132,7 @@ local Airflow = (function()
         gui.Parent = getGuiParent()
         Window.Gui = gui
 
-        local W, H = 780, 520
+        local W, H = 780, 540
         local scaleVal = 1
         local function calcScale()
             local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
@@ -185,7 +186,7 @@ local Airflow = (function()
         }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }) })
 
         local content = new("Frame", {
-            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -142), BackgroundTransparency = 1, Parent = root,
+            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -200), BackgroundTransparency = 1, Parent = root,
         })
 
         -- overlay for dropdown popups
@@ -302,6 +303,7 @@ local Airflow = (function()
 
         -- tabs
         local tabs, activeTab = {}, nil
+        local index = {} -- search registry: every control gets an entry
         local function selectTab(t)
             closePopup()
             activeTab = t
@@ -363,7 +365,7 @@ local Airflow = (function()
                     Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.Panel, BorderSizePixel = 0,
                 }, { corner(10), stroke(C.Stroke), pad(20, 20, 20, 20), new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) })
                 text(f, { Text = string.upper(name), TextSize = 12, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Header, Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 0 })
-                local pn = { Frame = f, Est = 0, Pin = pin, Order = 0 }
+                local pn = { Frame = f, Est = 0, Pin = pin, Order = 0, Name = name }
                 table.insert(Tab.Panels, pn)
                 relayout()
                 return pn
@@ -653,16 +655,40 @@ local Airflow = (function()
             end
 
             local function install(target, getPanel)
-                local function wrap(fn)
-                    return function(self, o) return fn(getPanel(), o) end
+                local function wrap(fn, kind)
+                    return function(self, o)
+                        local pn = getPanel()
+                        local res = fn(pn, o)
+                        if kind then
+                            local row
+                            for _, c in ipairs(pn.Frame:GetChildren()) do
+                                if c:IsA("Frame") and c.LayoutOrder == pn.Order then row = c break end
+                            end
+                            if row then
+                                local names = {}
+                                if kind == "row" then
+                                    for _, b in ipairs(o) do table.insert(names, b.Name or "Button") end
+                                else
+                                    table.insert(names, o.Name or "Item")
+                                end
+                                for _, nm in ipairs(names) do
+                                    table.insert(index, {
+                                        Name = nm, Desc = (kind == "item") and o.Desc or nil, Tab = Tab,
+                                        TabName = p.Name or "Tab", Section = pn.Name, Row = row,
+                                    })
+                                end
+                            end
+                        end
+                        return res
+                    end
                 end
-                target.CreateToggle    = wrap(B.Toggle)
-                target.CreateSlider    = wrap(B.Slider)
-                target.CreateDropdown  = wrap(B.Dropdown)
-                target.CreateKeybind   = wrap(B.Keybind)
-                target.CreateInput     = wrap(B.Input)
-                target.CreateButton    = wrap(B.Button)
-                target.CreateButtonRow = wrap(B.ButtonRow)
+                target.CreateToggle    = wrap(B.Toggle, "item")
+                target.CreateSlider    = wrap(B.Slider, "item")
+                target.CreateDropdown  = wrap(B.Dropdown, "item")
+                target.CreateKeybind   = wrap(B.Keybind, "item")
+                target.CreateInput     = wrap(B.Input, "item")
+                target.CreateButton    = wrap(B.Button, "item")
+                target.CreateButtonRow = wrap(B.ButtonRow, "row")
                 target.CreateLabel     = wrap(B.Label)
                 target.CreateParagraph = wrap(B.Label)
                 target.CreateDivider   = wrap(B.Divider)
@@ -688,6 +714,111 @@ local Airflow = (function()
             table.insert(tabs, Tab)
             if #tabs == 1 then selectTab(Tab) end
             return Tab
+        end
+
+        -- ===== search bar (bottom) =====
+        do
+            local bar = new("Frame", {
+                AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 28, 1, -16), Size = UDim2.new(1, -56, 0, 38),
+                BackgroundTransparency = 1, Parent = root,
+            })
+            local box = new("TextBox", {
+                Size = UDim2.new(1, -104, 1, 0), BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search any feature (silent aim, magnet, trail, config...)",
+                PlaceholderColor3 = Color3.fromRGB(100, 100, 112), TextColor3 = C.Text, TextSize = 13, FontFace = font(),
+                ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = bar,
+            }, { corner(8), stroke(C.Stroke), pad(14, 0, 14, 0) })
+            local goBtn = new("TextButton", {
+                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(94, 38), BackgroundColor3 = C.Accent,
+                Text = "Search", TextColor3 = C.BtnDark, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = bar,
+            }, { corner(8) })
+
+            local results = new("Frame", {
+                AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 28, 1, -62), Size = UDim2.new(1, -56, 0, 0),
+                BackgroundColor3 = C.Field, BorderSizePixel = 0, Visible = false, ZIndex = 40, ClipsDescendants = true, Parent = root,
+            }, { corner(9), stroke(C.StrokeLt) })
+            local list = new("ScrollingFrame", {
+                Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = C.StrokeLt,
+                AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 41, Parent = results,
+            }, { pad(6, 6, 6, 6), new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }) })
+
+            local current = {}
+            local function jump(e)
+                if not e then return end
+                results.Visible = false
+                box:ReleaseFocus()
+                closePopup()
+                selectTab(e.Tab)
+                task.spawn(function()
+                    task.wait(0.08)
+                    local page = e.Tab.Page
+                    local y = e.Row.AbsolutePosition.Y - page.AbsolutePosition.Y + page.CanvasPosition.Y - 12
+                    page.CanvasPosition = Vector2.new(0, math.max(0, y))
+                    local hl = new("Frame", {
+                        Size = UDim2.new(1, 16, 1, 10), Position = UDim2.fromOffset(-8, -5), BackgroundColor3 = C.Accent,
+                        BackgroundTransparency = 0.7, BorderSizePixel = 0, ZIndex = 5, Parent = e.Row,
+                    }, { corner(8) })
+                    task.wait(0.5)
+                    tween(hl, 0.8, { BackgroundTransparency = 1 })
+                    task.wait(0.9)
+                    hl:Destroy()
+                end)
+            end
+
+            local function refresh()
+                for _, c in ipairs(list:GetChildren()) do
+                    if c:IsA("GuiObject") then c:Destroy() end
+                end
+                local q = string.lower((box.Text:gsub("^%s+", ""):gsub("%s+$", "")))
+                if q == "" then results.Visible = false; current = {} return end
+                local scored = {}
+                for _, e in ipairs(index) do
+                    local n = string.lower(e.Name)
+                    local sc
+                    if n == q then sc = 1
+                    elseif n:sub(1, #q) == q then sc = 2
+                    elseif n:find(q, 1, true) then sc = 3
+                    elseif string.lower(e.Section):find(q, 1, true) then sc = 4
+                    elseif string.lower(e.TabName):find(q, 1, true) then sc = 5
+                    elseif e.Desc and string.lower(e.Desc):find(q, 1, true) then sc = 6 end
+                    if sc then table.insert(scored, { e = e, sc = sc }) end
+                end
+                table.sort(scored, function(a, b) if a.sc ~= b.sc then return a.sc < b.sc end return a.e.Name < b.e.Name end)
+                current = {}
+                local shown = math.min(#scored, 40)
+                for i = 1, shown do
+                    local e = scored[i].e
+                    current[i] = e
+                    local b = new("TextButton", {
+                        Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = C.TabOn, BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+                        LayoutOrder = i, ZIndex = 42, Parent = list,
+                    }, { corner(6) })
+                    text(b, { Text = e.Name, TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(0.55, -10, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 43 })
+                    text(b, { Text = e.TabName .. " / " .. e.Section, TextSize = 12, TextColor3 = C.Muted, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 0), Size = UDim2.new(0.45, -10, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 43 })
+                    b.MouseEnter:Connect(function() b.BackgroundTransparency = 0 end)
+                    b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
+                    b.MouseButton1Down:Connect(function() jump(e) end)
+                end
+                if shown == 0 then
+                    text(list, { Text = "No matches", TextSize = 13, TextColor3 = C.Muted, Size = UDim2.new(1, 0, 0, 36), ZIndex = 42 })
+                end
+                results.Size = UDim2.new(1, -56, 0, math.min(math.max(shown, 1), 6) * 38 + 12)
+                results.Visible = true
+            end
+
+            box:GetPropertyChangedSignal("Text"):Connect(refresh)
+            box.Focused:Connect(function() box.UIStroke.Color = C.Accent; refresh() end)
+            box.FocusLost:Connect(function(enter)
+                box.UIStroke.Color = C.Stroke
+                if enter and current[1] then jump(current[1]) return end
+                task.delay(0.25, function() if not box:IsFocused() then results.Visible = false end end)
+            end)
+            goBtn.MouseButton1Click:Connect(function()
+                if box.Text == "" then box:CaptureFocus() return end
+                refresh()
+                if current[1] then jump(current[1]) end
+            end)
+            goBtn.MouseEnter:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = Color3.fromRGB(128, 186, 255) }) end)
+            goBtn.MouseLeave:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = C.Accent }) end)
         end
 
         return Window
