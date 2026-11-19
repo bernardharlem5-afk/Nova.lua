@@ -7,8 +7,16 @@
 -- A report of what is missing is printed to the console and shown in a
 -- notification when the window opens.
 -- ============================================================
-local __compat = { missing = {}, executor = "unknown" }
+local __compat = { missing = {}, executor = "unknown", has = {} }
 do
+    __compat.has = {
+        firetouchinterest = type(firetouchinterest) == "function",
+        hookfunction = type(hookfunction) == "function" or type(hookfunc) == "function" or type(replaceclosure) == "function",
+        getconnections = type(getconnections) == "function",
+        getrawmetatable = type(getrawmetatable) == "function" or (type(debug) == "table" and type(debug.getmetatable) == "function"),
+        newcclosure = type(newcclosure) == "function",
+        actors = type(getactors) == "function" and type(run_on_actor) == "function",
+    }
     pcall(function()
         if type(identifyexecutor) == "function" then
             local name, ver = identifyexecutor()
@@ -58,6 +66,70 @@ do
         miss("getactors/run_on_actor (aimbot actor hook)")
     end
     if type(loadstring) ~= "function" then miss("loadstring") end
+end
+
+
+-- Checks each executor dependency for real (not just "does the name exist"),
+-- prints every result to the console (F9) and returns a one-line summary.
+function __compat.selfTest(done)
+    task.spawn(function()
+        local RS = game:GetService("ReplicatedStorage")
+        local out, failed = {}, {}
+        local function add(ok, name, detail)
+            table.insert(out, (ok and "OK    " or "FAIL  ") .. name .. (detail and (" - " .. tostring(detail)) or ""))
+            if not ok then table.insert(failed, name) end
+        end
+        local function check(name, present, fn)
+            if not present then add(false, name, "function not provided by this executor"); return end
+            local ok, err = pcall(fn)
+            add(ok, name, (not ok) and err or nil)
+        end
+
+        check("firetouchinterest", __compat.has.firetouchinterest, function()
+            local a, b = Instance.new("Part"), Instance.new("Part")
+            a.Anchored, b.Anchored = true, true
+            a.Parent, b.Parent = workspace, workspace
+            local hit = false
+            local c = a.Touched:Connect(function() hit = true end)
+            firetouchinterest(a, b, 0); task.wait(0.15); firetouchinterest(a, b, 1)
+            c:Disconnect(); a:Destroy(); b:Destroy()
+            assert(hit, "call ran but the Touched event never fired")
+        end)
+        check("hookfunction", __compat.has.hookfunction, function()
+            local function f() return 1 end
+            local old
+            old = hookfunction(f, function() return 2 end)
+            assert(f() == 2 and old() == 1, "hook did not take effect")
+        end)
+        check("getconnections", __compat.has.getconnections, function()
+            local e = Instance.new("BindableEvent")
+            e.Event:Connect(function() end)
+            local list = getconnections(e.Event)
+            e:Destroy()
+            assert(type(list) == "table" and #list > 0, "returned no connections")
+        end)
+        check("getrawmetatable", __compat.has.getrawmetatable, function()
+            assert(getrawmetatable(game) ~= nil)
+        end)
+        check("newcclosure", __compat.has.newcclosure, function()
+            assert(type(newcclosure(function() end)) == "function")
+        end)
+        check("getactors + run_on_actor", __compat.has.actors, function() end)
+        check("require(PlayerData)", true, function()
+            assert(require(RS.Util.PlayerData).storedData, "module loaded but has no storedData")
+        end)
+        check("require(Replicator)", true, function()
+            assert(require(RS.Util.Replicator), "module returned nothing")
+        end)
+        check("Remotes.goalEvent", true, function()
+            assert(RS.Remotes.goalEvent, "not found")
+        end)
+
+        print("[Compat self-test] " .. __compat.executor .. "\n" .. table.concat(out, "\n"))
+        local summary = (#failed == 0) and "All checks passed."
+            or ("Failed: " .. table.concat(failed, ", "))
+        if done then pcall(done, summary, failed) end
+    end)
 end
 
 -- Download helper that tries every HTTP method an executor might offer.
@@ -1921,7 +1993,13 @@ else
         if auraDispatcher or not Replicator or not OriginalReplicateAura then return end
         auraDispatcher = function(Parent, Name)
             if ownerOfParent(Parent) == LocalPlayer then
-                if s.BodyAura.Enabled and BodyAuraItems[s.BodyAura.Selected] then
+                -- The body aura name is only used for your own character. Anything
+                -- else (the ball) is left alone, otherwise a body aura model gets
+                -- attached to the ball when you shoot and the ball sticks to you.
+                local char = LocalPlayer.Character
+                local onBody = char ~= nil and typeof(Parent) == "Instance"
+                    and (Parent == char or Parent:IsDescendantOf(char))
+                if onBody and s.BodyAura.Enabled and BodyAuraItems[s.BodyAura.Selected] then
                     Name = BodyAuraItems[s.BodyAura.Selected]
                 elseif s.BallAura.Enabled and Auras[s.BallAura.CurrentAura] then
                     Name = Auras[s.BallAura.CurrentAura]
@@ -2042,17 +2120,36 @@ else
         -- Build the aura on the live character right now. The parent the game
         -- expects is unknown, so try the character, then HumanoidRootPart if
         -- nothing new appeared.
+        local replicated = {}
+        local function clearReplicated()
+            for _, inst in replicated do pcall(function() inst:Destroy() end) end
+            table.clear(replicated)
+        end
+
         local function replicateNow()
             local target = items[s.BodyAura.Selected]
             local character = LocalPlayer.Character
             if not target or not character or type(OriginalReplicateAura) ~= "function" then return end
             task.spawn(function()
-                local before = #character:GetDescendants()
+                clearReplicated()
+                local before = {}
+                for _, d in character:GetDescendants() do before[d] = true end
+                local function addedAny()
+                    for _, d in character:GetDescendants() do
+                        if not before[d] then return true end
+                    end
+                    return false
+                end
                 pcall(OriginalReplicateAura, character, target)
                 task.wait(0.4)
-                if #character:GetDescendants() == before then
+                if not addedAny() then
                     local hrp = character:FindFirstChild("HumanoidRootPart")
-                    if hrp then pcall(OriginalReplicateAura, hrp, target) end
+                    if hrp then pcall(OriginalReplicateAura, hrp, target); task.wait(0.4) end
+                end
+                for _, d in character:GetDescendants() do
+                    if not before[d] and (d.Parent == character or before[d.Parent]) then
+                        table.insert(replicated, d)
+                    end
                 end
             end)
         end
@@ -2243,10 +2340,21 @@ else
 
                 -- Everything with geometry goes into one folder on your character;
                 -- loose effects (attachments, emitters) go on the root.
+                -- Kept OUT of your character so the game's ball/possession code never
+                -- sees these parts as part of you.
                 local clones = Instance.new("Folder")
                 clones.Name = "BodyAuraClones"
-                clones.Parent = character
+                clones.Parent = workspace.CurrentCamera or workspace
                 table.insert(cloned, clones)
+                local carrier = Instance.new("Part")
+                carrier.Name = "Carrier"
+                carrier.Size = Vector3.one
+                carrier.Transparency = 1
+                carrier.Anchored = true
+                carrier.CanCollide, carrier.CanTouch, carrier.CanQuery = false, false, false
+                carrier.CastShadow = false
+                carrier.CFrame = hrp.CFrame
+                carrier.Parent = clones
                 -- Anything the clone spawns later gets hidden too.
                 table.insert(hideConns, clones.DescendantAdded:Connect(hideInstance))
 
@@ -2255,8 +2363,7 @@ else
                     if hasPart then
                         piece.Parent = clones
                     else
-                        piece.Parent = hrp
-                        table.insert(cloned, piece)
+                        piece.Parent = carrier
                     end
                 end
 
@@ -2346,7 +2453,7 @@ else
             charConn = LocalPlayer.CharacterAdded:Connect(function()
                 if not s.BodyAura.Enabled then return end
                 task.wait(0.5)
-                if alsoEquip then setEquipped(true) end
+                if alsoEquip then replicateNow() end
                 if usedClone then
                     task.wait(1)
                     if s.BodyAura.Enabled then cloneOntoBody() end
@@ -2365,7 +2472,6 @@ else
             end
             s.BodyAura.Enabled = true
             ensureAuraHook()
-            setEquipped(true)
             local c0 = LocalPlayer.Character
             local before = c0 and #c0:GetDescendants() or 0
             replicateNow()
@@ -2395,6 +2501,7 @@ else
             s.BodyAura.Enabled = false
             if charConn then charConn:Disconnect(); charConn = nil end
             setEquipped(false)
+            clearReplicated()
             clearCloned()
             usedClone = false
             releaseAuraHook(false)
@@ -3127,6 +3234,29 @@ end)
     hookmain()
     hookactors()
 
+    -- Fallback for executors without hookfunction/getrawmetatable (such as Xeno):
+    -- instead of intercepting the camera table, write the aim direction into it
+    -- right after the game's camera has updated, only while a shot target is set.
+    if not state.oldnewindex then
+        pcall(function()
+            local cameradata = SharedTableRegistry:GetSharedTable("CameraData")
+            RunService:BindToRenderStep("FatalAimFallback", Enum.RenderPriority.Last.Value + 1, function()
+                local tgt = state.target
+                if not tgt then return end
+                local char = LocalPlayer.Character
+                local head = char and char:FindFirstChild("Head")
+                if not head then return end
+                pcall(function()
+                    cameradata.CameraCFrame = CFrame.new(head.Position, tgt)
+                end)
+            end)
+            addconnection({ Disconnect = function()
+                pcall(function() RunService:UnbindFromRenderStep("FatalAimFallback") end)
+            end })
+            print("[Fatal] Silent aim: hook unavailable, using the direct camera-write fallback.")
+        end)
+    end
+
     addconnection(Players.PlayerAdded:Connect(function() task.defer(hookactors) end))
     addconnection(RunService.Heartbeat:Connect(updateAuralTarget))
 
@@ -3322,6 +3452,60 @@ end)
     local MoveTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
     local CosmeticsTab = Window:CreateTab({ Name = "Cosmetics", Icon = "eye" })
     local SafetyTab = Window:CreateTab({ Name = "Safety", Icon = "user" })
+
+    -- Wraps every control's callback so an error shows up as a notification and a
+    -- console line naming the feature, instead of the control silently doing nothing.
+    do
+        local lastErr, lastAt = nil, 0
+        local function guardTab(tab)
+            for _, method in { "CreateToggle", "CreateButton", "CreateSlider", "CreateDropdown", "CreateKeybind", "CreateInput" } do
+                local orig = tab[method]
+                if type(orig) == "function" then
+                    tab[method] = function(self, cfg, ...)
+                        if type(cfg) == "table" and type(cfg.Callback) == "function" then
+                            local cb, label = cfg.Callback, tostring(cfg.Name)
+                            cfg.Callback = function(...)
+                                local ok, err = pcall(cb, ...)
+                                if not ok then
+                                    warn("[Fatal] '" .. label .. "' failed: " .. tostring(err))
+                                    if err ~= lastErr or os.clock() - lastAt > 3 then
+                                        lastErr, lastAt = err, os.clock()
+                                        Notify({ title = "Feature error", content = label .. ": " .. tostring(err), duration = 8 })
+                                    end
+                                end
+                            end
+                        end
+                        return orig(self, cfg, ...)
+                    end
+                end
+            end
+        end
+        for _, tab in { CombatTab, BallTab, MoveTab, CosmeticsTab, SafetyTab } do pcall(guardTab, tab) end
+    end
+
+    -- Checks the executor once at startup and says which features it affects.
+    task.defer(function()
+        __compat.selfTest(function(summary, failed)
+            local AFFECTS = {
+                ["firetouchinterest"] = "Ball magnet / Mag V2 / Ball reach",
+                ["hookfunction"] = "aimbot camera hook (fallback is used) / goal effect",
+                ["getconnections"] = "goal effect",
+                ["getrawmetatable"] = "aimbot camera hook (fallback is used)",
+                ["require(PlayerData)"] = "ball, trail, aura, court and goal changers",
+                ["require(Replicator)"] = "ball, trail, aura, court changers and body aura",
+                ["Remotes.goalEvent"] = "goal effect",
+            }
+            local lines = {}
+            for _, name in failed do
+                if AFFECTS[name] then table.insert(lines, name .. " -> " .. AFFECTS[name]) end
+            end
+            Notify({
+                title = "Feature check (" .. __compat.executor .. ")",
+                content = (#lines == 0) and summary or table.concat(lines, "; "),
+                duration = 12,
+            })
+        end)
+    end)
 
     CombatTab:CreateSection("Silent Aim")
     CombatTab:CreateToggle({
@@ -3775,6 +3959,17 @@ end)
     CosmeticsTab:CreateButton({
         Name = "Scan nameplates (debug)",
         Callback = function() pcall(BadgeSpoof.scan) end,
+    })
+
+    SafetyTab:CreateSection("Compatibility")
+    SafetyTab:CreateButton({
+        Name = "Run executor self-test",
+        Callback = function()
+            Notify({ title = "Self-test", content = "Running, results in the console (F9)...", duration = 3 })
+            __compat.selfTest(function(summary)
+                Notify({ title = "Self-test (" .. __compat.executor .. ")", content = summary, duration = 10 })
+            end)
+        end,
     })
 
     SafetyTab:CreateSection("Device Spoofer")
