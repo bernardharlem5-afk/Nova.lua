@@ -2187,6 +2187,7 @@ else
         Shooting = {
             AuralEnabled = false, AuralKeybind = Enum.KeyCode.X,
             ShotYAxis = 0, ShotDelay = 0.32, EBLHop = false,
+            NoJump = false, NoJumpKeybind = Enum.KeyCode.C,
             HumanizeAim = false, HumanizeStrength = 1.2, MissChance = 0,
             RandomizeShotDelay = false, ShotDelayMin = 0.25, ShotDelayMax = 0.38,
         },
@@ -2201,6 +2202,7 @@ else
         },
         MagV2 = { Enabled = false, BallName = "Ball", Reach = 20, Keybind = Enum.KeyCode.U },
         TPWalk = { Enabled = false, Speed = 0.01, Keybind = Enum.KeyCode.P },
+        SelfPass = { Keybind = Enum.KeyCode.G, Height = 60, Power = 70, GrabReach = 20, CatchTime = 2.5 },
         AutoDefense = {
             Enabled = false, Keybind = Enum.KeyCode.V,
             -- spin
@@ -2224,7 +2226,7 @@ else
             Speed = { Enabled = false, Mult = 1.35, Keybind = Enum.KeyCode.RightShift },
             InfiniteJump = { Enabled = false, Power = 1, Count = 2 },
         },
-        Misc = { AntiModerator = false, DeviceSpoofer = false, Device = "PC", MobilePanel = true },
+        Misc = { AntiModerator = false, DeviceSpoofer = false, Device = "PC", MobilePanel = false },
         Visuals = {
             ShotIndicator = false, IndicatorColor = "Purple",
             CustomName = false, CustomNameText = "",
@@ -2248,6 +2250,7 @@ else
 
     local setAural, setGuard, setMagnet, setReach, setTPWalk, setMagV2
     local MobileRefresh = function() end
+    local setMobileButtons = function(v) s.Misc.MobilePanel = v and true or false end
 
     local IndicatorColors = {
         Blue = Color3.fromRGB(60, 150, 255),
@@ -2733,7 +2736,7 @@ else
     end
 
     -- ============================================================
-    -- AUTO DEFENSE
+    -- AUTO MIX (spin / jitter / mix + evade the guarding player)
     -- Spins / jitters / mixes your character and slides it away from
     -- the nearest defender. Everything is adjustable from the HVH tab.
     -- ============================================================
@@ -3317,6 +3320,7 @@ else
 
     local auralTick = 0
     local function updateAuralTarget(dt)
+        if state.selfPassing then return end
         if not state.active or not s.Shooting.AuralEnabled then
             if state.target ~= nil then settarget(nil) end
             return
@@ -3442,18 +3446,8 @@ end)
     addconnection(Players.PlayerAdded:Connect(function() task.defer(hookactors) end))
     addconnection(RunService.Heartbeat:Connect(updateAuralTarget))
 
-    local function setupCharacterAural(char)
-        local hum = char:WaitForChild("Humanoid", 5)
-        if not hum then return end
-        local jumps = 0
-        addconnection(hum.Jumping:Connect(function(active)
-            if not active then return end
-            if not s.Shooting.AuralEnabled or not hasball(char) then return end
-            if s.Shooting.EBLHop then
-                jumps += 1
-                if jumps < 2 then return end
-                jumps = 0
-            end
+    -- the whole shot sequence (aim at the goal, set power, wait, click)
+    local function runAuralShot(char)
             local root = char:FindFirstChild("HumanoidRootPart")
             if not root then return end
             local goal, distance = nearestgoal(root)
@@ -3495,11 +3489,123 @@ end)
             doClick()
             task.wait(0.1)
             updateAuralTarget(0.1)
+    end
+
+    -- ============================================================
+    -- SELF PASS: throws the ball straight up, then catches it for you
+    -- ============================================================
+    local selfPassBusy = false
+
+    local function findThrownBall(origin, maxDist)
+        local names = { Ball = true }
+        if s.MagV2 and s.MagV2.BallName then names[s.MagV2.BallName] = true end
+        local best, bestD = nil, maxDist
+        for _, inst in ipairs(workspace:GetDescendants()) do
+            if inst:IsA("BasePart") and names[inst.Name]
+                and (inst:FindFirstChildWhichIsA("TouchTransmitter") or inst:FindFirstChild("TouchInterest")) then
+                local d = (inst.Position - origin).Magnitude
+                if d < bestD then best, bestD = inst, d end
+            end
+        end
+        return best
+    end
+
+    local function runSelfPass()
+        if selfPassBusy then return end
+        local cfg = s.SelfPass
+        local char, _, root = getChar()
+        if not char or not root or not hasball(char) then
+            if Notify then pcall(Notify, { title = "Self Pass", content = "You need the ball first.", duration = 2 }) end
+            return
+        end
+        selfPassBusy = true
+        state.selfPassing = true
+        task.spawn(function()
+            pcall(function()
+                -- 1. aim straight up and throw
+                local up = root.Position + root.CFrame.LookVector * 0.5 + Vector3.new(0, cfg.Height, 0)
+                settarget(up)
+                task.wait(0.05)
+                LocalPlayer:SetAttribute("Power", cfg.Power)
+                task.wait(0.05)
+                doClick()
+
+                -- 2. wait for the ball to leave your hands (keep the aim locked meanwhile)
+                local t0 = os.clock()
+                while hasball(char) and os.clock() - t0 < 1.2 do
+                    settarget(up)
+                    task.wait()
+                end
+                settarget(nil)
+                if hasball(char) then return end -- the throw never happened
+
+                -- 3. catch it
+                local ball, nextFind = nil, 0
+                local tCatch = os.clock()
+                while os.clock() - tCatch < cfg.CatchTime do
+                    if hasball(char) or not root.Parent then break end
+                    if (not ball or not ball.Parent) and os.clock() >= nextFind then
+                        ball = findThrownBall(root.Position, 80)
+                        nextFind = os.clock() + 0.15
+                    end
+                    if ball and ball.Parent then
+                        local d = (ball.Position - root.Position).Magnitude
+                        if d <= cfg.GrabReach then
+                            pcall(function()
+                                firetouchinterest(root, ball, 0)
+                                firetouchinterest(root, ball, 1)
+                            end)
+                            -- once it is on the way down, guide it into your hands
+                            if not ball.Anchored and ball.AssemblyLinearVelocity.Y < 0 then
+                                ball.AssemblyLinearVelocity = (root.Position + Vector3.new(0, 2, 0) - ball.Position) * 10
+                            end
+                        end
+                    end
+                    task.wait()
+                end
+            end)
+            settarget(nil)
+            state.selfPassing = false
+            selfPassBusy = false
+        end)
+    end
+
+    local function setupCharacterAural(char)
+        local hum = char:WaitForChild("Humanoid", 5)
+        if not hum then return end
+        local jumps = 0
+        addconnection(hum.Jumping:Connect(function(active)
+            if not active then return end
+            if not s.Shooting.AuralEnabled or not hasball(char) then return end
+            if s.Shooting.EBLHop then
+                jumps += 1
+                if jumps < 2 then return end
+                jumps = 0
+            end
+            runAuralShot(char)
         end))
     end
 
     if LocalPlayer.Character then setupCharacterAural(LocalPlayer.Character) end
     addconnection(LocalPlayer.CharacterAdded:Connect(setupCharacterAural))
+
+    -- No-jump silent aim: same shot, started by a keypress instead of a jump
+    local noJumpBusy = false
+    addconnection(UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe or noJumpBusy then return end
+        if not s.Shooting.NoJump or not s.Shooting.AuralEnabled then return end
+        if input.KeyCode ~= s.Shooting.NoJumpKeybind then return end
+        local char = LocalPlayer.Character
+        if not char or not hasball(char) then return end
+        noJumpBusy = true
+        pcall(runAuralShot, char)
+        noJumpBusy = false
+    end))
+
+    addconnection(UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == s.SelfPass.Keybind then runSelfPass() end
+    end))
 
     local textListeners = {}
     local originalNameTexts, originalRecordTexts, originalTitleTexts = {}, {}, {}
@@ -3986,6 +4092,18 @@ end)
         Flag = "bytewtf_ebl", CurrentValue = s.Shooting.EBLHop,
         Callback = function(v) s.Shooting.EBLHop = v end,
     })
+    CombatTab:CreateToggle({
+        Name = "No jump silent aim", Desc = "Fires the silent aim from a keypress, no jump needed.",
+        Flag = "bytewtf_nojump", CurrentValue = s.Shooting.NoJump,
+        Callback = function(v) s.Shooting.NoJump = v end,
+    })
+    CombatTab:CreateKeybind({
+        Name = "No jump keybind", Flag = "bytewtf_nojump_key",
+        CurrentValue = s.Shooting.NoJumpKeybind,
+        Callback = function(key)
+            if typeof(key) == "EnumItem" then s.Shooting.NoJumpKeybind = key end
+        end,
+    })
     CombatTab:CreateSlider({
         Name = "Shot delay",
         Range = { 0.15, 0.42 }, Increment = 0.01, Suffix = "s",
@@ -4058,14 +4176,14 @@ end)
         Callback = function(v) s.Defending.GuardPrediction = v end,
     })
 
-    CombatTab:CreateSection("Auto Defense")
+    CombatTab:CreateSection("Auto Mix")
     CombatTab:CreateToggle({
-        Name = "Auto defense", Desc = "Spins you and slides you away from whoever is guarding you.",
+        Name = "Auto mix", Desc = "Spins / mixes you and slides you away from whoever is guarding you.",
         Flag = "bytewtf_ad", CurrentValue = s.AutoDefense.Enabled,
         Callback = function(v) setAutoDefense(v) end,
     })
     CombatTab:CreateKeybind({
-        Name = "Auto defense keybind", Flag = "bytewtf_ad_key",
+        Name = "Auto mix keybind", Flag = "bytewtf_ad_key",
         CurrentValue = s.AutoDefense.Keybind,
         Callback = function(key)
             if typeof(key) == "EnumItem" then s.AutoDefense.Keybind = key end
@@ -4105,7 +4223,7 @@ end)
         Callback = function(v) s.AutoDefense.FlipTime = v end,
     })
 
-    CombatTab:CreateSection("Auto Defense: Evade")
+    CombatTab:CreateSection("Auto Mix: Evade")
     CombatTab:CreateToggle({
         Name = "Move away from defender", Desc = "Pushes your body away from the closest guard.",
         Flag = "bytewtf_ad_evade", CurrentValue = s.AutoDefense.Evade,
@@ -4227,6 +4345,36 @@ end)
         end,
     })
 
+    BallTab:CreateSection("Self Pass")
+    BallTab:CreateButton({
+        Name = "Self pass", Desc = "Throws the ball straight up, then catches it.",
+        Callback = function() runSelfPass() end,
+    })
+    BallTab:CreateKeybind({
+        Name = "Self pass keybind", Flag = "bytewtf_selfpass_key",
+        CurrentValue = s.SelfPass.Keybind,
+        Callback = function(key)
+            if typeof(key) == "EnumItem" then s.SelfPass.Keybind = key end
+        end,
+    })
+    BallTab:CreateSlider({
+        Name = "Throw height", Desc = "How high the ball is aimed above you.",
+        Range = { 20, 120 }, Increment = 5,
+        CurrentValue = s.SelfPass.Height, Flag = "bytewtf_selfpass_height",
+        Callback = function(v) s.SelfPass.Height = v end,
+    })
+    BallTab:CreateSlider({
+        Name = "Throw power", Range = { 20, 100 }, Increment = 5,
+        CurrentValue = s.SelfPass.Power, Flag = "bytewtf_selfpass_power",
+        Callback = function(v) s.SelfPass.Power = v end,
+    })
+    BallTab:CreateSlider({
+        Name = "Catch reach", Desc = "How close the ball must be before you grab it.",
+        Range = { 5, 40 }, Increment = 1, Suffix = "studs",
+        CurrentValue = s.SelfPass.GrabReach, Flag = "bytewtf_selfpass_reach",
+        Callback = function(v) s.SelfPass.GrabReach = v end,
+    })
+
     buildHVHTab(HVHTab, s.HVH)
 
     HVHTab:CreateSection("TPWalk")
@@ -4250,9 +4398,9 @@ end)
         Callback = function(v) s.TPWalk.Speed = v end,
     })
 
-    VisualsTab:CreateSection("Aimbot Range Indicator")
+    VisualsTab:CreateSection("Shot Indicator")
     VisualsTab:CreateToggle({
-        Name = "Aimbot range indicator", Flag = "bytewtf_ind",
+        Name = "Shot indicator", Flag = "bytewtf_ind",
         CurrentValue = s.Visuals.ShotIndicator,
         Callback = setShotIndicator,
     })
@@ -4263,7 +4411,7 @@ end)
         Callback = function(v) s.Visuals.IndicatorColor = v; applyIndicatorColor() end,
     })
 
-    VisualsTab:CreateSection("Goal Effect")
+    VisualsTab:CreateSection("Goal Effect Changer")
     local function getEffectNames()
         local names = {}
         for k in pairs(Effects) do table.insert(names, k) end
@@ -4605,6 +4753,13 @@ end)
         end,
     })
 
+    UtilityTab:CreateSection("Mobile Buttons")
+    UtilityTab:CreateToggle({
+        Name = "Mobile buttons", Desc = "Shows the on-screen Aim / Guard / Mag / Mix / Pass buttons (touch devices).",
+        Flag = "bytewtf_mobile_buttons", CurrentValue = s.Misc.MobilePanel,
+        Callback = function(v) setMobileButtons(v) end,
+    })
+
     UtilityTab:CreateSection("Config Saver")
     local ConfigName = "default"
     UtilityTab:CreateInput({
@@ -4709,10 +4864,16 @@ end)
 
         local Panel = Instance.new("Frame")
         Panel.Name = "Panel"
-        Panel.Size = UDim2.fromOffset(52, 320)
-        Panel.Position = UDim2.new(1, -64, 0.5, -160)
+        Panel.Size = UDim2.fromOffset(52, 360)
+        Panel.Position = UDim2.new(1, -64, 0.5, -180)
         Panel.BackgroundTransparency = 1
+        Panel.Visible = s.Misc.MobilePanel
         Panel.Parent = ScreenGui
+
+        setMobileButtons = function(v)
+            s.Misc.MobilePanel = v and true or false
+            Panel.Visible = s.Misc.MobilePanel
+        end
 
         local Layout = Instance.new("UIListLayout")
         Layout.Padding = UDim.new(0, 5)
@@ -4750,7 +4911,8 @@ end)
         local MagV2, MagV2S = makeButton("MagV2", 4, function() setMagV2() end, s.MagV2.Enabled)
         local Reach, ReachS = makeButton("Reach", 5, function() setReach() end, s.Ball.BallReach)
         local TPW, TPWS = makeButton("TPWalk", 6, function() setTPWalk() end, s.TPWalk.Enabled)
-        local Def, DefS = makeButton("Def", 7, function() setAutoDefense() end, s.AutoDefense.Enabled)
+        local Def, DefS = makeButton("Mix", 7, function() setAutoDefense() end, s.AutoDefense.Enabled)
+        makeButton("Pass", 8, function() runSelfPass() end, false)
 
         local function paint(btn, stroke, on)
             btn.BackgroundColor3 = on and Color3.fromRGB(242, 140, 62) or Color3.fromRGB(22, 14, 36)
