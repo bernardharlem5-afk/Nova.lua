@@ -805,7 +805,7 @@ local Airflow = (function()
                     text(b, { Text = e.TabName .. " / " .. e.Section, TextSize = 12, TextColor3 = C.Muted, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 0), Size = UDim2.new(0.45, -10, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 43 })
                     b.MouseEnter:Connect(function() b.BackgroundTransparency = 0 end)
                     b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
-                    b.MouseButton1Down:Connect(function() jump(e) end)
+                    b.Activated:Connect(function() jump(e) end)
                 end
                 if shown == 0 then
                     text(list, { Text = "No matches", TextSize = 13, TextColor3 = C.Muted, Size = UDim2.new(1, 0, 0, 36), ZIndex = 42 })
@@ -818,8 +818,7 @@ local Airflow = (function()
             box.Focused:Connect(function() box.UIStroke.Color = C.Accent; refresh() end)
             box.FocusLost:Connect(function(enter)
                 box.UIStroke.Color = C.Stroke
-                if enter and current[1] then jump(current[1]) return end
-                task.delay(0.25, function() if not box:IsFocused() then results.Visible = false end end)
+                if enter and current[1] then jump(current[1]) end
             end)
             goBtn.MouseButton1Click:Connect(function()
                 if box.Text == "" then box:CaptureFocus() return end
