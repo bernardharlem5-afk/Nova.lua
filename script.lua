@@ -2201,6 +2201,23 @@ else
         },
         MagV2 = { Enabled = false, BallName = "Ball", Reach = 20, Keybind = Enum.KeyCode.U },
         TPWalk = { Enabled = false, Speed = 0.01, Keybind = Enum.KeyCode.P },
+        AutoDefense = {
+            Enabled = false, Keybind = Enum.KeyCode.V,
+            -- spin
+            Mode = "Mix",                 -- Spin | Jitter | Mix
+            Direction = "Alternate",      -- Clockwise | Counter-Clockwise | Alternate | Random
+            Trigger = "Defender nearby",  -- Defender nearby | Always
+            SpinSpeed = 900,              -- degrees per second
+            JitterAngle = 40,             -- degrees per flick (Jitter mode)
+            FlipTime = 0.25,              -- seconds between direction/speed changes
+            -- evade
+            Evade = true,
+            Bias = "Straight Away",       -- Straight Away | Away + Left | Away + Right
+            EvadeSpeed = 14,              -- studs per second pushed away from the defender
+            Radius = 12,                  -- how close a defender must be to react
+            Control = 60,                 -- % of the evade push your own steering cancels
+            IgnoreTeam = true,
+        },
         HVH = {
             HipHeight = { Enabled = false, Value = 0, Default = 0 },
             Swim = { Enabled = false, Power = 1 },
@@ -2713,6 +2730,122 @@ else
 
     local function disableTPWalk()
         if tpWalkConnection then tpWalkConnection:Disconnect(); tpWalkConnection = nil end
+    end
+
+    -- ============================================================
+    -- AUTO DEFENSE
+    -- Spins / jitters / mixes your character and slides it away from
+    -- the nearest defender. Everything is adjustable from the HVH tab.
+    -- ============================================================
+    local adConn = nil
+    local ad = { flipT = 0, dynSign = 1, mixFlip = 1, speedMul = 1, jit = 1 }
+
+    local function adFlat(v) return Vector3.new(v.X, 0, v.Z) end
+
+    local function adNearestDefender(myPos, radius, ignoreTeam)
+        local best, bestDist = nil, radius
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and not (ignoreTeam and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team) then
+                local ch = plr.Character
+                local r = ch and ch:FindFirstChild("HumanoidRootPart")
+                local h = ch and ch:FindFirstChildOfClass("Humanoid")
+                if r and h and h.Health > 0 then
+                    local d = (adFlat(r.Position) - adFlat(myPos)).Magnitude
+                    if d < bestDist then best, bestDist = r, d end
+                end
+            end
+        end
+        return best, bestDist
+    end
+
+    -- returns how many radians to rotate this frame
+    local function adSpinStep(cfg, dt)
+        if cfg.Mode == "Jitter" then
+            ad.jit = -ad.jit
+            return ad.jit * math.rad(cfg.JitterAngle)
+        end
+
+        ad.flipT = ad.flipT + dt
+        if ad.flipT >= math.max(cfg.FlipTime, 0.03) then
+            ad.flipT = 0
+            if cfg.Direction == "Alternate" then
+                ad.dynSign = -ad.dynSign
+            elseif cfg.Direction == "Random" then
+                ad.dynSign = (math.random() < 0.5) and -1 or 1
+            end
+            if cfg.Mode == "Mix" then
+                ad.speedMul = 0.5 + math.random() * 1.1          -- speed wobbles 0.5x .. 1.6x
+                ad.mixFlip = (math.random() < 0.3) and -ad.mixFlip or ad.mixFlip -- sometimes flips on its own
+            else
+                ad.speedMul, ad.mixFlip = 1, 1
+            end
+        end
+
+        local sign
+        if cfg.Direction == "Clockwise" then sign = -1
+        elseif cfg.Direction == "Counter-Clockwise" then sign = 1
+        else sign = ad.dynSign end
+        if cfg.Mode ~= "Mix" then ad.mixFlip, ad.speedMul = 1, 1 end
+        return sign * ad.mixFlip * ad.speedMul * math.rad(cfg.SpinSpeed) * dt
+    end
+
+    local function disableAutoDefense()
+        if adConn then adConn:Disconnect(); adConn = nil end
+        local _, hum = getChar()
+        if hum then hum.AutoRotate = true end
+    end
+
+    local function enableAutoDefense()
+        if adConn then adConn:Disconnect(); adConn = nil end
+        ad.flipT, ad.dynSign, ad.mixFlip, ad.speedMul, ad.jit = 0, 1, 1, 1, 1
+        adConn = RunService.Heartbeat:Connect(function(dt)
+            local cfg = s.AutoDefense
+            if not cfg.Enabled then return end
+            local _, hum, hrp = getChar()
+            if not hum or not hrp or hum.Health <= 0 then return end
+
+            -- let the script own your facing while it is on
+            if hum.AutoRotate then hum.AutoRotate = false end
+
+            local defender, dist = adNearestDefender(hrp.Position, cfg.Radius, cfg.IgnoreTeam)
+
+            -- evade: slide away from the guard, softened by your own steering
+            local move = Vector3.zero
+            if cfg.Evade and defender then
+                local away = adFlat(hrp.Position - defender.Position)
+                if away.Magnitude > 0.01 then
+                    away = away.Unit
+                    local dir = away
+                    if cfg.Bias ~= "Straight Away" then
+                        local right = Vector3.new(-away.Z, 0, away.X) -- right-hand side of the escape line
+                        if cfg.Bias == "Away + Left" then right = -right end
+                        dir = (away + right * 0.8).Unit
+                    end
+                    local steering = (hum.MoveDirection.Magnitude > 0.1) and (cfg.Control / 100) or 0
+                    local closeness = 1 - math.clamp(dist / math.max(cfg.Radius, 1), 0, 1) * 0.5
+                    move = dir * math.min(cfg.EvadeSpeed, 40) * dt * (1 - steering) * closeness
+                end
+            end
+
+            -- spin: always, or only while somebody is guarding you
+            local rot = 0
+            if cfg.Trigger == "Always" or defender then
+                rot = adSpinStep(cfg, dt)
+            end
+
+            if move == Vector3.zero and rot == 0 then return end
+            local cf = hrp.CFrame + move
+            if rot ~= 0 then cf = cf * CFrame.Angles(0, rot, 0) end
+            hrp.CFrame = cf
+        end)
+        Track(adConn)
+    end
+
+    local function setAutoDefense(on)
+        if on == nil then on = not s.AutoDefense.Enabled end
+        s.AutoDefense.Enabled = on and true or false
+        if s.AutoDefense.Enabled then enableAutoDefense() else disableAutoDefense() end
+        MobileRefresh()
     end
 
     local magV2Connection = nil
@@ -3824,9 +3957,9 @@ end)
 
     Notify = function(props) Window:Notify(props) end
 
-    local CombatTab = Window:CreateTab({ Name = "Main", Icon = "swords" })
+    local CombatTab = Window:CreateTab({ Name = "Combat", Icon = "swords" })
     local BallTab = Window:CreateTab({ Name = "Ball", Icon = "circle" })
-    local HVHTab = Window:CreateTab({ Name = "HVH", Icon = "activity" })
+    local HVHTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
     local VisualsTab = Window:CreateTab({ Name = "Visuals", Icon = "eye" })
     local PrivacyTab = Window:CreateTab({ Name = "Privacy", Icon = "user" })
     local UtilityTab = Window:CreateTab({ Name = "Utility", Icon = "list" })
@@ -3925,6 +4058,87 @@ end)
         Callback = function(v) s.Defending.GuardPrediction = v end,
     })
 
+    CombatTab:CreateSection("Auto Defense")
+    CombatTab:CreateToggle({
+        Name = "Auto defense", Desc = "Spins you and slides you away from whoever is guarding you.",
+        Flag = "bytewtf_ad", CurrentValue = s.AutoDefense.Enabled,
+        Callback = function(v) setAutoDefense(v) end,
+    })
+    CombatTab:CreateKeybind({
+        Name = "Auto defense keybind", Flag = "bytewtf_ad_key",
+        CurrentValue = s.AutoDefense.Keybind,
+        Callback = function(key)
+            if typeof(key) == "EnumItem" then s.AutoDefense.Keybind = key end
+        end,
+    })
+    CombatTab:CreateDropdown({
+        Name = "Spin mode", Options = { "Spin", "Jitter", "Mix" },
+        CurrentValue = s.AutoDefense.Mode, Flag = "bytewtf_ad_mode",
+        Callback = function(v) s.AutoDefense.Mode = v end,
+    })
+    CombatTab:CreateDropdown({
+        Name = "Spin direction", Options = { "Clockwise", "Counter-Clockwise", "Alternate", "Random" },
+        CurrentValue = s.AutoDefense.Direction, Flag = "bytewtf_ad_dir",
+        Callback = function(v) s.AutoDefense.Direction = v end,
+    })
+    CombatTab:CreateDropdown({
+        Name = "Spin when", Options = { "Defender nearby", "Always" },
+        CurrentValue = s.AutoDefense.Trigger, Flag = "bytewtf_ad_trigger",
+        Callback = function(v) s.AutoDefense.Trigger = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Spin speed", Desc = "Degrees per second (Spin / Mix).",
+        Range = { 90, 3600 }, Increment = 30, Suffix = "deg/s",
+        CurrentValue = s.AutoDefense.SpinSpeed, Flag = "bytewtf_ad_speed",
+        Callback = function(v) s.AutoDefense.SpinSpeed = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Jitter angle", Desc = "How far each flick turns you (Jitter mode).",
+        Range = { 5, 120 }, Increment = 5, Suffix = "deg",
+        CurrentValue = s.AutoDefense.JitterAngle, Flag = "bytewtf_ad_jitter",
+        Callback = function(v) s.AutoDefense.JitterAngle = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Switch time", Desc = "How often Alternate / Random / Mix change things up.",
+        Range = { 0.05, 1.5 }, Increment = 0.05, Suffix = "s",
+        CurrentValue = s.AutoDefense.FlipTime, Flag = "bytewtf_ad_flip",
+        Callback = function(v) s.AutoDefense.FlipTime = v end,
+    })
+
+    CombatTab:CreateSection("Auto Defense: Evade")
+    CombatTab:CreateToggle({
+        Name = "Move away from defender", Desc = "Pushes your body away from the closest guard.",
+        Flag = "bytewtf_ad_evade", CurrentValue = s.AutoDefense.Evade,
+        Callback = function(v) s.AutoDefense.Evade = v end,
+    })
+    CombatTab:CreateDropdown({
+        Name = "Evade direction", Options = { "Straight Away", "Away + Left", "Away + Right" },
+        CurrentValue = s.AutoDefense.Bias, Flag = "bytewtf_ad_bias",
+        Callback = function(v) s.AutoDefense.Bias = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Evade speed", Desc = "Studs per second pushed away from the defender.",
+        Range = { 1, 40 }, Increment = 1,
+        CurrentValue = s.AutoDefense.EvadeSpeed, Flag = "bytewtf_ad_evspeed",
+        Callback = function(v) s.AutoDefense.EvadeSpeed = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Detect radius", Desc = "A defender must be this close to trigger it.",
+        Range = { 4, 30 }, Increment = 1, Suffix = "studs",
+        CurrentValue = s.AutoDefense.Radius, Flag = "bytewtf_ad_radius",
+        Callback = function(v) s.AutoDefense.Radius = v end,
+    })
+    CombatTab:CreateSlider({
+        Name = "Your control", Desc = "How much your own movement cancels the push (100 = you fully steer).",
+        Range = { 0, 100 }, Increment = 5, Suffix = "%",
+        CurrentValue = s.AutoDefense.Control, Flag = "bytewtf_ad_control",
+        Callback = function(v) s.AutoDefense.Control = v end,
+    })
+    CombatTab:CreateToggle({
+        Name = "Ignore teammates", Flag = "bytewtf_ad_team", CurrentValue = s.AutoDefense.IgnoreTeam,
+        Callback = function(v) s.AutoDefense.IgnoreTeam = v end,
+    })
+
     BallTab:CreateSection("Ball Magnet")
     BallTab:CreateToggle({
         Name = "Ball magnet", Flag = "bytewtf_mag", CurrentValue = s.Ball.BallMags,
@@ -4013,28 +4227,28 @@ end)
         end,
     })
 
-    BallTab:CreateSection("TPWalk")
-    BallTab:CreateToggle({
+    buildHVHTab(HVHTab, s.HVH)
+
+    HVHTab:CreateSection("TPWalk")
+    HVHTab:CreateToggle({
         Name = "tpwalk",
         Desc = "Teleport-walk; nudges your root part each frame for a smooth glide.",
         Flag = "bytewtf_tpwalk", CurrentValue = s.TPWalk.Enabled,
         Callback = function(v) setTPWalk(v) end,
     })
-    BallTab:CreateKeybind({
+    HVHTab:CreateKeybind({
         Name = "tpwalk keybind", Flag = "bytewtf_tpwalk_key",
         CurrentValue = s.TPWalk.Keybind,
         Callback = function(key)
             if typeof(key) == "EnumItem" then s.TPWalk.Keybind = key end
         end,
     })
-    BallTab:CreateSlider({
+    HVHTab:CreateSlider({
         Name = "tpwalk speed", Desc = "Step distance per frame (0.001 – 0.06).",
         Range = { 0.001, 0.06 }, Increment = 0.001,
         CurrentValue = s.TPWalk.Speed, Flag = "bytewtf_tpwalk_speed",
         Callback = function(v) s.TPWalk.Speed = v end,
     })
-
-    buildHVHTab(HVHTab, s.HVH)
 
     VisualsTab:CreateSection("Aimbot Range Indicator")
     VisualsTab:CreateToggle({
@@ -4144,13 +4358,37 @@ end)
         end,
     })
 
-    VisualsTab:CreateSection("Nameplate & Title")
-    VisualsTab:CreateToggle({
+    PrivacyTab:CreateSection("Device Spoofer")
+    PrivacyTab:CreateToggle({
+        Name = "Device spoofer", Flag = "bytewtf_dev", CurrentValue = s.Misc.DeviceSpoofer,
+        Callback = function(v) s.Misc.DeviceSpoofer = v; SpoofDevice() end,
+    })
+    PrivacyTab:CreateDropdown({
+        Name = "Device", Options = { "PC", "Mobile", "Gamepad" },
+        CurrentValue = s.Misc.Device, Flag = "bytewtf_dev_sel",
+        Callback = function(v) s.Misc.Device = v; SpoofDevice() end,
+    })
+
+    PrivacyTab:CreateSection("Logo Changer")
+    for _, n in ipairs(LogoNames) do
+        PrivacyTab:CreateToggle({
+            Name = n .. " logo", Desc = "Shows the " .. n .. " icon on your own nametag (only you see it).",
+            Flag = "bytewtf_logo_" .. n:lower(), CurrentValue = logoDefault(n),
+            Callback = function(v) applyLogo(n, v) end,
+        })
+    end
+    PrivacyTab:CreateButton({
+        Name = "Reset logos",
+        Callback = function() resetLogos() end,
+    })
+
+    PrivacyTab:CreateSection("Nameplate & Title")
+    PrivacyTab:CreateToggle({
         Name = "Hide my nameplate & tags", Flag = "bytewtf_np_hide",
         CurrentValue = s.Visuals.HideOwnNameplate,
         Callback = function(v) s.Visuals.HideOwnNameplate = v; applyOwnNameplate() end,
     })
-    VisualsTab:CreateInput({
+    PrivacyTab:CreateInput({
         Name = "Custom username", Placeholder = "e.g. Byte",
         CurrentValue = s.Visuals.CustomNameText, Flag = "bytewtf_np_name",
         Callback = function(text)
@@ -4159,7 +4397,7 @@ end)
             applyOwnNameplate()
         end,
     })
-    VisualsTab:CreateInput({
+    PrivacyTab:CreateInput({
         Name = "Custom record", Placeholder = "e.g. 99-0",
         CurrentValue = s.Visuals.CustomRecordText, Flag = "bytewtf_np_rec",
         Callback = function(text)
@@ -4168,7 +4406,7 @@ end)
             applyOwnNameplate()
         end,
     })
-    VisualsTab:CreateInput({
+    PrivacyTab:CreateInput({
         Name = "Custom title", Placeholder = "e.g. Byte Elite",
         CurrentValue = s.Visuals.CustomTitleText, Flag = "bytewtf_np_title",
         Callback = function(text)
@@ -4183,7 +4421,7 @@ end)
     -- PLAYER MORPH (client-side avatar change)
     -- ============================================================
     do
-        VisualsTab:CreateSection("Player Morph")
+        PrivacyTab:CreateSection("Player Morph")
         local morphOriginal
         local typedName = ""
         local pickedPlayer
@@ -4229,12 +4467,12 @@ end)
             end)
         end
 
-        VisualsTab:CreateInput({
+        PrivacyTab:CreateInput({
             Name = "Username", Placeholder = "any Roblox username",
             CurrentValue = "", Flag = "bytewtf_morph_name",
             Callback = function(t) typedName = t end,
         })
-        VisualsTab:CreateButtonRow({
+        PrivacyTab:CreateButtonRow({
             { Name = "Morph into username", Callback = function()
                 task.spawn(function()
                     local name = typedName
@@ -4247,8 +4485,8 @@ end)
             end },
             { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
         })
-        VisualsTab:CreateDivider()
-        VisualsTab:CreateDropdown({
+        PrivacyTab:CreateDivider()
+        PrivacyTab:CreateDropdown({
             Name = "Select player", Placeholder = "In this server", Options = {},
             Dynamic = function()
                 local list = {}
@@ -4260,7 +4498,7 @@ end)
             end,
             Callback = function(v) pickedPlayer = v end,
         })
-        VisualsTab:CreateButtonRow({
+        PrivacyTab:CreateButtonRow({
             { Name = "Morph into player", Callback = function()
                 task.spawn(function()
                     local plr = pickedPlayer and Players:FindFirstChild(pickedPlayer)
@@ -4273,32 +4511,8 @@ end)
         })
     end
 
-    PrivacyTab:CreateSection("Device Spoofer")
-    PrivacyTab:CreateToggle({
-        Name = "Device spoofer", Flag = "bytewtf_dev", CurrentValue = s.Misc.DeviceSpoofer,
-        Callback = function(v) s.Misc.DeviceSpoofer = v; SpoofDevice() end,
-    })
-    PrivacyTab:CreateDropdown({
-        Name = "Device", Options = { "PC", "Mobile", "Gamepad" },
-        CurrentValue = s.Misc.Device, Flag = "bytewtf_dev_sel",
-        Callback = function(v) s.Misc.Device = v; SpoofDevice() end,
-    })
-
-    PrivacyTab:CreateSection("Logo Changer")
-    for _, n in ipairs(LogoNames) do
-        PrivacyTab:CreateToggle({
-            Name = n .. " logo", Desc = "Shows the " .. n .. " icon on your own nametag (only you see it).",
-            Flag = "bytewtf_logo_" .. n:lower(), CurrentValue = logoDefault(n),
-            Callback = function(v) applyLogo(n, v) end,
-        })
-    end
-    PrivacyTab:CreateButton({
-        Name = "Reset logos",
-        Callback = function() resetLogos() end,
-    })
-
-    PrivacyTab:CreateSection("Ball Changer")
-    PrivacyTab:CreateDropdown({
+    VisualsTab:CreateSection("Ball Changer")
+    VisualsTab:CreateDropdown({
         Name = "Select ball", Options = #BallNames > 0 and BallNames or { "None" },
         CurrentValue = s.BallChanger.SelectedBall, Flag = "bytewtf_ball_sel",
         Callback = function(v)
@@ -4307,7 +4521,7 @@ end)
             if s.BallChanger.Enabled then pcall(applyBallChanger) end
         end,
     })
-    PrivacyTab:CreateToggle({
+    VisualsTab:CreateToggle({
         Name = "Enable ball changer", Flag = "bytewtf_ball",
         CurrentValue = s.BallChanger.Enabled,
         Callback = function(v)
@@ -4315,7 +4529,7 @@ end)
             if v then pcall(applyBallChanger) else pcall(resetBallChanger) end
         end,
     })
-    PrivacyTab:CreateButton({
+    VisualsTab:CreateButton({
         Name = "Reset ball",
         Callback = function()
             s.BallChanger.Enabled = false
@@ -4325,8 +4539,8 @@ end)
         end,
     })
 
-    PrivacyTab:CreateSection("Trail Spoofer")
-    PrivacyTab:CreateDropdown({
+    VisualsTab:CreateSection("Trail Spoofer")
+    VisualsTab:CreateDropdown({
         Name = "Select trail", Options = #TrailNames > 0 and TrailNames or { "None" },
         CurrentValue = s.TrailSpoofer.SelectedTrail, Flag = "bytewtf_trail_sel",
         Callback = function(v)
@@ -4335,7 +4549,7 @@ end)
             if s.TrailSpoofer.Enabled then pcall(applyTrailSpoofer) end
         end,
     })
-    PrivacyTab:CreateToggle({
+    VisualsTab:CreateToggle({
         Name = "Enable trail spoofer", Flag = "bytewtf_trail",
         CurrentValue = s.TrailSpoofer.Enabled,
         Callback = function(v)
@@ -4343,7 +4557,7 @@ end)
             if v then pcall(applyTrailSpoofer) else pcall(resetTrailSpoofer) end
         end,
     })
-    PrivacyTab:CreateButton({
+    VisualsTab:CreateButton({
         Name = "Reset trail",
         Callback = function()
             s.TrailSpoofer.Enabled = false
@@ -4353,8 +4567,8 @@ end)
         end,
     })
 
-    PrivacyTab:CreateSection("Ball Aura Spoofer")
-    PrivacyTab:CreateDropdown({
+    VisualsTab:CreateSection("Ball Aura Spoofer")
+    VisualsTab:CreateDropdown({
         Name = "Select aura", Options = #AuraNames > 0 and AuraNames or { "None" },
         CurrentValue = s.BallAura.SelectedAura, Flag = "bytewtf_aura_sel",
         Callback = function(v)
@@ -4363,7 +4577,7 @@ end)
             if s.BallAura.Enabled then pcall(applyBallAura) end
         end,
     })
-    PrivacyTab:CreateToggle({
+    VisualsTab:CreateToggle({
         Name = "Enable ball aura spoofer", Flag = "bytewtf_aura",
         CurrentValue = s.BallAura.Enabled,
         Callback = function(v)
@@ -4371,7 +4585,7 @@ end)
             if v then pcall(applyBallAura) else pcall(resetBallAura) end
         end,
     })
-    PrivacyTab:CreateButton({
+    VisualsTab:CreateButton({
         Name = "Reset ball aura",
         Callback = function()
             s.BallAura.Enabled = false
@@ -4474,6 +4688,10 @@ end)
     end)
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
+        if input.KeyCode == s.AutoDefense.Keybind then setAutoDefense() end
+    end)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
         if input.KeyCode == s.MagV2.Keybind then setMagV2() end
     end)
 
@@ -4532,6 +4750,7 @@ end)
         local MagV2, MagV2S = makeButton("MagV2", 4, function() setMagV2() end, s.MagV2.Enabled)
         local Reach, ReachS = makeButton("Reach", 5, function() setReach() end, s.Ball.BallReach)
         local TPW, TPWS = makeButton("TPWalk", 6, function() setTPWalk() end, s.TPWalk.Enabled)
+        local Def, DefS = makeButton("Def", 7, function() setAutoDefense() end, s.AutoDefense.Enabled)
 
         local function paint(btn, stroke, on)
             btn.BackgroundColor3 = on and Color3.fromRGB(242, 140, 62) or Color3.fromRGB(22, 14, 36)
@@ -4546,6 +4765,7 @@ end)
             paint(MagV2, MagV2S, s.MagV2.Enabled)
             paint(Reach, ReachS, s.Ball.BallReach)
             paint(TPW, TPWS, s.TPWalk.Enabled)
+            paint(Def, DefS, s.AutoDefense.Enabled)
         end
 
         local dragging = false
@@ -4582,6 +4802,7 @@ end)
         pcall(disableMagV2)
         pcall(disableReach)
         pcall(disableTPWalk)
+        pcall(disableAutoDefense)
         pcall(hvhResetAll)
         pcall(hvhStop)
         pcall(resetBallChanger)
