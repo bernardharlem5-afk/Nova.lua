@@ -18,29 +18,30 @@ local Airflow = (function()
 
     -- palette (taken from the screenshot)
     local C = {
-        Window    = Color3.fromRGB(11, 11, 13),
-        TitleBar  = Color3.fromRGB(9, 9, 11),
-        Panel     = Color3.fromRGB(15, 15, 18),
-        Field     = Color3.fromRGB(21, 21, 25),
-        Stroke    = Color3.fromRGB(36, 36, 42),
-        StrokeLt  = Color3.fromRGB(54, 54, 62),
-        Text      = Color3.fromRGB(236, 236, 240),
-        Muted     = Color3.fromRGB(128, 128, 138),
-        Header    = Color3.fromRGB(150, 150, 160),
-        Accent    = Color3.fromRGB(236, 236, 240),
-        AccentDk  = Color3.fromRGB(196, 196, 204),
-        ToggleOn  = Color3.fromRGB(232, 232, 236),
-        ToggleOff = Color3.fromRGB(44, 44, 50),
-        TabOn     = Color3.fromRGB(23, 23, 28),
-        TabOnStr  = Color3.fromRGB(66, 66, 75),
-        BtnDark   = Color3.fromRGB(8, 8, 10),
-        SliderTrack = Color3.fromRGB(40, 40, 46),
-        LoadTrack   = Color3.fromRGB(30, 30, 36),
-        KnobOff     = Color3.fromRGB(118, 118, 128),
-        TabText     = Color3.fromRGB(190, 190, 198),
-        Placeholder = Color3.fromRGB(96, 96, 106),
-        AccentHover = Color3.fromRGB(250, 250, 252),
-        BtnHover    = Color3.fromRGB(32, 32, 38),
+        Window    = Color3.fromRGB(13, 13, 16),
+        TitleBar  = Color3.fromRGB(15, 15, 19),
+        Panel     = Color3.fromRGB(16, 16, 20),
+        Field     = Color3.fromRGB(23, 23, 29),
+        Stroke    = Color3.fromRGB(38, 38, 47),
+        StrokeLt  = Color3.fromRGB(50, 50, 62),
+        Text      = Color3.fromRGB(228, 228, 234),
+        Muted     = Color3.fromRGB(122, 122, 134),
+        Header    = Color3.fromRGB(136, 136, 148),
+        Accent    = Color3.fromRGB(102, 170, 255),
+        AccentDk  = Color3.fromRGB(44, 74, 140),
+        ToggleOn  = Color3.fromRGB(58, 98, 184),
+        ToggleOff = Color3.fromRGB(40, 40, 49),
+        TabOn     = Color3.fromRGB(34, 40, 56),
+        TabOnStr  = Color3.fromRGB(66, 82, 120),
+        BtnDark   = Color3.fromRGB(14, 22, 38),
+        -- extra keys (these used to be hard-coded colours, now themeable)
+        SliderTrack = Color3.fromRGB(38, 38, 48),
+        LoadTrack   = Color3.fromRGB(34, 34, 43),
+        KnobOff     = Color3.fromRGB(150, 150, 162),
+        TabText     = Color3.fromRGB(200, 200, 210),
+        Placeholder = Color3.fromRGB(100, 100, 112),
+        AccentHover = Color3.fromRGB(128, 186, 255),
+        BtnHover    = Color3.fromRGB(32, 32, 40),
         Title       = Color3.fromRGB(255, 255, 253),
         TabSelText  = Color3.fromRGB(255, 254, 255),
     }
@@ -94,7 +95,7 @@ local Airflow = (function()
     end
 
     -- ----- baked-in logo (embedded PNG, loaded through the executor's file functions) -----
-    local LOGO_B64 = "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"
+    local LOGO_B64 = "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"
     local function b64decode(data)
         local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
         local lookup = {}
@@ -351,8 +352,7 @@ local Airflow = (function()
         Window.Gui = gui
         table.insert(Lib._guis, gui)
 
-        local W, H = 880, 560
-        local SB, HD = 216, 66 -- sidebar width, header height
+        local W, H = 780, 520
         local scaleVal = 1
         local function calcScale()
             local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
@@ -363,84 +363,31 @@ local Airflow = (function()
         local root = new("Frame", {
             Name = "Root", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
             Size = UDim2.fromOffset(W, H), BackgroundColor3 = C.Window, BorderSizePixel = 0, Parent = gui,
-        }, { corner(14), stroke(C.Stroke, 1) })
+        }, { corner(12), stroke(C.Stroke, 1) })
         local uiScale = new("UIScale", { Scale = calcScale(), Parent = root })
         if workspace.CurrentCamera then
             workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function() uiScale.Scale = calcScale() end)
         end
 
-        -- ===== left sidebar =====
-        local sidebar = new("Frame", { Size = UDim2.new(0, SB, 1, 0), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = root }, { corner(14) })
-        new("Frame", { Position = UDim2.new(1, -14, 0, 0), Size = UDim2.new(0, 14, 1, 0), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = sidebar })
-        new("Frame", { Position = UDim2.new(1, -1, 0, 0), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = C.Stroke, BorderSizePixel = 0, ZIndex = 2, Parent = sidebar })
-
-        local brandZone = new("Frame", { Size = UDim2.new(1, 0, 0, 90), BackgroundTransparency = 1, Parent = sidebar })
+        -- title bar
+        local titleBar = new("Frame", { Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = root },
+            { new("UICorner", { CornerRadius = UDim.new(0, 12) }) })
+        new("Frame", { Position = UDim2.new(0, 0, 1, -12), Size = UDim2.new(1, 0, 0, 12), BackgroundColor3 = C.TitleBar, BorderSizePixel = 0, Parent = titleBar })
+        new("Frame", { Position = UDim2.new(0, 0, 1, -1), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = C.Stroke, BorderSizePixel = 0, Parent = titleBar })
         local logo = getLogo()
-        local brand = new("Frame", {
-            Position = UDim2.fromOffset(18, 18), Size = UDim2.fromOffset(54, 54), BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-            BorderSizePixel = 0, ClipsDescendants = true, Parent = sidebar,
-        }, { corner(14), stroke(C.Stroke) })
         if logo then
-            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = brand })
-        else
-            text(brand, { Text = "B", TextSize = 26, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Size = UDim2.fromScale(1, 1) })
+            new("ImageLabel", { Position = UDim2.fromOffset(24, 11), Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = titleBar })
         end
-        text(sidebar, { Text = opts.Name or "Byte.WTF", TextSize = 18, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Title, Position = UDim2.fromOffset(82, 21), Size = UDim2.new(1, -92, 0, 24), TextXAlignment = Enum.TextXAlignment.Left })
-        text(sidebar, { Text = opts.LoadingSubtitle or "Byte On Top", TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(82, 46), Size = UDim2.new(1, -92, 0, 18), TextXAlignment = Enum.TextXAlignment.Left })
+        text(titleBar, { Text = opts.Name or "Byte.WTF", TextSize = 16, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Title, Position = UDim2.fromOffset(logo and 66 or 28, 0), Size = UDim2.new(1, -60, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
 
-        local tabBar = new("ScrollingFrame", {
-            Position = UDim2.fromOffset(12, 96), Size = UDim2.new(1, -24, 1, -178), BackgroundTransparency = 1, BorderSizePixel = 0,
-            ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = sidebar,
-        }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
-
-        -- user card (bottom of sidebar)
-        do
-            local card = new("Frame", {
-                AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, -12), Size = UDim2.new(1, -24, 0, 60),
-                BackgroundColor3 = C.Panel, BorderSizePixel = 0, Parent = sidebar,
-            }, { corner(12), stroke(C.Stroke) })
-            local av = new("ImageLabel", { Position = UDim2.fromOffset(12, 12), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Field, BorderSizePixel = 0, Parent = card }, { corner(18) })
-            task.spawn(function()
-                local ok, img = pcall(function()
-                    return Players:GetUserThumbnailAsync(LP.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
-                end)
-                if ok and img and av.Parent then av.Image = img end
-            end)
-            text(card, { Text = LP.DisplayName, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), Position = UDim2.fromOffset(58, 12), Size = UDim2.new(1, -66, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
-            text(card, { Text = "@" .. LP.Name, TextSize = 11, TextColor3 = C.Muted, Position = UDim2.fromOffset(58, 31), Size = UDim2.new(1, -66, 0, 16), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
-        end
-
-        -- ===== header (page title, search, minimize, close) =====
-        local header = new("Frame", { Position = UDim2.fromOffset(SB, 0), Size = UDim2.new(1, -SB, 0, HD), BackgroundTransparency = 1, Parent = root })
-        local headerTitle = text(header, { Text = "", TextSize = 20, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Title, Position = UDim2.fromOffset(26, 0), Size = UDim2.new(0, 200, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
-
-        local function winBtn(offsetRight)
-            local b = new("TextButton", {
-                AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -offsetRight, 0.5, 0), Size = UDim2.fromOffset(38, 38),
-                BackgroundColor3 = C.Field, Text = "", AutoButtonColor = false, ZIndex = 5, Parent = header,
-            }, { corner(10), stroke(C.Stroke) })
-            b.MouseEnter:Connect(function() tween(b, 0.1, { BackgroundColor3 = C.BtnHover }) end)
-            b.MouseLeave:Connect(function() tween(b, 0.1, { BackgroundColor3 = C.Field }) end)
-            return b
-        end
-        local closeB = winBtn(20)
-        local minB = winBtn(66)
-        new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(12, 2), BackgroundColor3 = C.Header, BorderSizePixel = 0, ZIndex = 6, Parent = minB }, { corner(1) })
-        for _, r in ipairs({ 45, -45 }) do
-            new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(15, 2), Rotation = r, BackgroundColor3 = C.Header, BorderSizePixel = 0, ZIndex = 6, Parent = closeB }, { corner(1) })
-        end
-
-        -- dragging (header + logo area)
+        -- dragging
         do
             local dragging, dragStart, startPos
-            local function bind(h)
-                h.InputBegan:Connect(function(i)
-                    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                        dragging, dragStart, startPos = true, i.Position, root.Position
-                    end
-                end)
-            end
-            bind(header); bind(brandZone)
+            titleBar.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                    dragging, dragStart, startPos = true, i.Position, root.Position
+                end
+            end)
             UIS.InputChanged:Connect(function(i)
                 if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
                     local d = (i.Position - dragStart) / uiScale.Scale
@@ -452,8 +399,14 @@ local Airflow = (function()
             end)
         end
 
+        -- tab bar + content area
+        local tabBar = new("ScrollingFrame", {
+            Position = UDim2.fromOffset(28, 70), Size = UDim2.new(1, -56, 0, 34), BackgroundTransparency = 1, BorderSizePixel = 0,
+            ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.X, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.X, Parent = root,
+        }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }) })
+
         local content = new("Frame", {
-            Position = UDim2.fromOffset(SB + 22, HD + 6), Size = UDim2.new(1, -(SB + 44), 1, -(HD + 26)), BackgroundTransparency = 1, Parent = root,
+            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -142), BackgroundTransparency = 1, Parent = root,
         })
 
         -- overlay for dropdown popups
@@ -474,43 +427,16 @@ local Airflow = (function()
             if gp then return end
             if toggleKey and i.KeyCode == toggleKey then toggleUI() end
         end)
-        local function hideUI() if not uiReady then return end closePopup(); root.Visible = false end
-
-        -- floating circle that reopens the menu (shown whenever the window is hidden)
-        local openBtn = new("TextButton", {
-            Size = UDim2.fromOffset(46, 46), Position = UDim2.new(0, 18, 0.5, -23), BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-            Text = "", AutoButtonColor = false, Visible = false, ZIndex = 60, ClipsDescendants = true, Parent = gui,
-        }, { corner(23), stroke(C.StrokeLt, 1.5) })
-        if logo then
-            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, ZIndex = 61, Parent = openBtn })
-        else
-            text(openBtn, { Text = "B", TextSize = 20, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Size = UDim2.fromScale(1, 1), ZIndex = 61 })
-        end
-        local function syncOpenBtn() openBtn.Visible = uiReady and not root.Visible end
-        root:GetPropertyChangedSignal("Visible"):Connect(syncOpenBtn)
-        syncOpenBtn()
-        do -- click opens, drag moves
-            local down, moved, startIn, startPos
-            openBtn.InputBegan:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                    down, moved, startIn, startPos = true, false, i.Position, openBtn.Position
-                end
-            end)
-            UIS.InputChanged:Connect(function(i)
-                if down and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                    local d = i.Position - startIn
-                    if moved or d.Magnitude > 6 then
-                        moved = true
-                        openBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-                    end
-                end
-            end)
-            UIS.InputEnded:Connect(function(i)
-                if down and (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) then
-                    down = false
-                    if not moved then toggleUI() end
-                end
-            end)
+        if isMobile then
+            local b = new("TextButton", {
+                Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0, 14, 0.5, -20), BackgroundColor3 = C.Panel, Text = "UI",
+                TextColor3 = C.Accent, TextSize = 14, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = gui,
+            }, { corner(20), stroke(C.StrokeLt) })
+            if logo then
+                b.Text = ""
+                new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = logo, Parent = b })
+            end
+            b.MouseButton1Click:Connect(toggleUI)
         end
 
         -- loading screen
@@ -603,28 +529,24 @@ local Airflow = (function()
         local function selectTab(t)
             closePopup()
             activeTab = t
-            headerTitle.Text = t.Name or ""
             for _, o in ipairs(tabs) do
                 local on = (o == t)
                 o.Page.Visible = on
-                tween(o.Btn, 0.12, { BackgroundTransparency = on and 0 or 1, TextColor3 = on and C.TabSelText or C.TabText })
-                tween(o.BtnStroke, 0.12, { Transparency = on and 0 or 1 })
+                tween(o.Btn, 0.12, { BackgroundColor3 = on and C.TabOn or C.Panel, TextColor3 = on and C.TabSelText or C.TabText })
+                o.BtnStroke.Color = on and C.TabOnStr or C.Stroke
             end
         end
 
         function Window:CreateTab(p)
             p = p or {}
             local Tab = { Panels = {}, Order = 0 }
-            Tab.Name = p.Name or "Tab"
             local btn = new("TextButton", {
-                Text = p.Name or "Tab", Size = UDim2.new(1, 0, 0, 42),
-                BackgroundColor3 = C.TabOn, BackgroundTransparency = 1, TextColor3 = C.TabText, TextSize = 14, FontFace = font(Enum.FontWeight.Medium),
-                AutoButtonColor = false, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = #tabs + 1, Parent = tabBar,
-            }, { corner(10), pad(18, 0, 12, 0) })
-            local bs = stroke(C.TabOnStr); bs.Transparency = 1; bs.Parent = btn
+                Text = p.Name or "Tab", AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 34),
+                BackgroundColor3 = C.Panel, TextColor3 = C.TabText, TextSize = 14, FontFace = font(Enum.FontWeight.Medium),
+                AutoButtonColor = false, LayoutOrder = #tabs + 1, Parent = tabBar,
+            }, { corner(8), pad(20, 0, 20, 0) })
+            local bs = stroke(C.Stroke); bs.Parent = btn
             Tab.Btn, Tab.BtnStroke = btn, bs
-            btn.MouseEnter:Connect(function() if activeTab ~= Tab then tween(btn, 0.1, { TextColor3 = C.Text }) end end)
-            btn.MouseLeave:Connect(function() if activeTab ~= Tab then tween(btn, 0.1, { TextColor3 = C.TabText }) end end)
 
             local page = new("ScrollingFrame", {
                 Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3,
@@ -663,8 +585,8 @@ local Airflow = (function()
             local function newPanel(name, pin)
                 local f = new("Frame", {
                     Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.Panel, BorderSizePixel = 0,
-                }, { corner(12), stroke(C.Stroke), pad(20, 20, 20, 20), new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) })
-                text(f, { Text = name, TextSize = 15, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Text, Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 0 })
+                }, { corner(10), stroke(C.Stroke), pad(20, 20, 20, 20), new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) })
+                text(f, { Text = string.upper(name), TextSize = 12, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Header, Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 0 })
                 local pn = { Frame = f, Est = 0, Pin = pin, Order = 0, Name = name }
                 table.insert(Tab.Panels, pn)
                 relayout()
@@ -686,36 +608,23 @@ local Airflow = (function()
             local B = {}
 
             function B.Toggle(pn, o)
-                local checkbox = (o.Style == "Checkbox") or o.Checkbox == true
                 local hasDesc = o.Desc and o.Desc ~= ""
                 local h = hasDesc and 54 or 34
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Toggle", Position = UDim2.fromOffset(0, hasDesc and 2 or 0), Size = UDim2.new(1, -70, 0, hasDesc and 22 or h), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Toggle", Position = UDim2.fromOffset(0, hasDesc and 2 or 0), Size = UDim2.new(1, -60, 0, hasDesc and 22 or h), TextXAlignment = Enum.TextXAlignment.Left })
                 if hasDesc then
-                    text(row, { Text = o.Desc, TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, -70, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
+                    text(row, { Text = o.Desc, TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, -60, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
                 end
+                local track = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(42, 24), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(12) })
+                local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = C.KnobOff, BorderSizePixel = 0, Parent = track }, { corner(8) })
                 local hit = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", Parent = row })
                 local state = o.CurrentValue == true
                 local obj = {}
-                local render
-                if checkbox then
-                    local box = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(22, 22), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(6), stroke(C.StrokeLt) })
-                    local c1 = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(8, 13), Size = UDim2.fromOffset(6, 2), Rotation = 45, BackgroundColor3 = C.BtnDark, BorderSizePixel = 0, Parent = box })
-                    local c2 = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(13, 11), Size = UDim2.fromOffset(11, 2), Rotation = -45, BackgroundColor3 = C.BtnDark, BorderSizePixel = 0, Parent = box })
-                    render = function(animate)
-                        c1.Visible, c2.Visible = state, state
-                        local col = state and C.ToggleOn or C.ToggleOff
-                        if animate then tween(box, 0.12, { BackgroundColor3 = col }) else box.BackgroundColor3 = col end
-                    end
-                else
-                    local track = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(44, 24), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(12) })
-                    local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = C.KnobOff, BorderSizePixel = 0, Parent = track }, { corner(8) })
-                    render = function(animate)
-                        local tp = { BackgroundColor3 = state and C.ToggleOn or C.ToggleOff }
-                        local kp = { Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 4, 0.5, 0), BackgroundColor3 = state and C.BtnDark or C.KnobOff }
-                        if animate then tween(track, 0.15, tp); tween(knob, 0.15, kp)
-                        else for k, v in pairs(tp) do track[k] = v end for k, v in pairs(kp) do knob[k] = v end end
-                    end
+                local function render(animate)
+                    local tp = { BackgroundColor3 = state and C.ToggleOn or C.ToggleOff }
+                    local kp = { Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 4, 0.5, 0), BackgroundColor3 = state and Color3.new(1, 1, 1) or C.KnobOff }
+                    if animate then tween(track, 0.15, tp); tween(knob, 0.15, kp)
+                    else for k, v in pairs(tp) do track[k] = v end for k, v in pairs(kp) do knob[k] = v end end
                 end
                 render(false)
                 function obj:Set(v)
@@ -739,7 +648,7 @@ local Airflow = (function()
                 local inc = o.Increment or 1
                 local dec = #((tostring(inc):match("%.(%d+)")) or "")
                 local suffix = (o.Suffix and o.Suffix ~= "") and (" " .. o.Suffix) or ""
-                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 35), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = C.SliderTrack, BorderSizePixel = 0, Parent = row }, { corner(2) })
+                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 38), Size = UDim2.new(1, 0, 0, 5), BackgroundColor3 = C.SliderTrack, BorderSizePixel = 0, Parent = row }, { corner(2) })
                 local fill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = track }, {
                     corner(2),
                     new("UIGradient", { Color = ColorSequence.new(C.AccentDk, C.Accent) }),
@@ -791,11 +700,11 @@ local Airflow = (function()
             end
 
             function B.Dropdown(pn, o)
-                local h = 68
+                local h = 36
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
-                text(row, { Text = o.Name or "Dropdown", Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left })
+                text(row, { Text = o.Name or "Dropdown", Size = UDim2.new(1, -176, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
                 local box = new("TextButton", {
-                    Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 38),
+                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(164, 32),
                     BackgroundColor3 = C.Field, Text = "", AutoButtonColor = false, Parent = row,
                 }, { corner(7), stroke(C.Stroke) })
                 local valLbl = text(box, { Text = "", TextSize = 13, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -36, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
@@ -867,7 +776,7 @@ local Airflow = (function()
                 local row = new("Frame", { Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = addItem(pn, h), Parent = pn.Frame })
                 text(row, { Text = o.Name or "Keybind", Size = UDim2.new(1, -130, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
                 local box = new("TextButton", {
-                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(88, 30),
+                    AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(112, 30),
                     BackgroundColor3 = C.Field, TextColor3 = C.Text, TextSize = 13, FontFace = font(), AutoButtonColor = false, Text = "", Parent = row,
                 }, { corner(6), stroke(C.Stroke) })
                 local key = o.CurrentValue
@@ -1031,20 +940,22 @@ local Airflow = (function()
 
         -- ===== search bar (top right of the title bar) =====
         do
+            local bar = new("Frame", {
+                AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -20, 0, 27), Size = UDim2.fromOffset(330, 34),
+                BackgroundTransparency = 1, ZIndex = 5, Parent = root,
+            })
             local box = new("TextBox", {
-                AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -114, 0.5, 0), Size = UDim2.fromOffset(300, 38),
-                BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search Functions...", ZIndex = 6,
+                Size = UDim2.new(1, -84, 1, 0), BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search features...", ZIndex = 6,
                 PlaceholderColor3 = C.Placeholder, TextColor3 = C.Text, TextSize = 13, FontFace = font(),
-                ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = header,
-            }, { corner(10), stroke(C.Stroke), pad(42, 0, 14, 0) })
-            do -- magnifier icon drawn from frames
-                local ic = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, -(114 + 300 - 15), 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, ZIndex = 7, Parent = header })
-                new("Frame", { Size = UDim2.fromOffset(11, 11), BackgroundTransparency = 1, ZIndex = 7, Parent = ic }, { corner(6), stroke(C.Header, 1.5) })
-                new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(12.5, 12.5), Size = UDim2.fromOffset(6, 2), Rotation = 45, BackgroundColor3 = C.Header, BorderSizePixel = 0, ZIndex = 7, Parent = ic }, { corner(1) })
-            end
+                ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = bar,
+            }, { corner(8), stroke(C.Stroke), pad(14, 0, 14, 0) })
+            local goBtn = new("TextButton", {
+                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(76, 34), BackgroundColor3 = C.Accent, ZIndex = 6,
+                Text = "Search", TextColor3 = C.BtnDark, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = bar,
+            }, { corner(8) })
 
             local results = new("Frame", {
-                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -114, 0, 58), Size = UDim2.fromOffset(420, 0),
+                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -20, 0, 62), Size = UDim2.fromOffset(420, 0),
                 BackgroundColor3 = C.Field, BorderSizePixel = 0, Visible = false, ZIndex = 40, ClipsDescendants = true, Parent = root,
             }, { corner(9), stroke(C.StrokeLt) })
             local list = new("ScrollingFrame", {
@@ -1056,7 +967,7 @@ local Airflow = (function()
             results.Active = true
             list.Active = true
             local blocker = new("TextButton", {
-                Position = UDim2.fromOffset(0, HD), Size = UDim2.new(1, 0, 1, -HD), BackgroundTransparency = 1, Text = "",
+                Position = UDim2.fromOffset(0, 54), Size = UDim2.new(1, 0, 1, -54), BackgroundTransparency = 1, Text = "",
                 AutoButtonColor = false, Active = true, Visible = false, ZIndex = 30, Parent = root,
             })
             blocker.MouseButton1Click:Connect(function() results.Visible = false; box:ReleaseFocus() end)
@@ -1132,11 +1043,14 @@ local Airflow = (function()
                 box.UIStroke.Color = C.Stroke
                 if enter and current[1] then jump(current[1]) end
             end)
+            goBtn.MouseButton1Click:Connect(function()
+                if box.Text == "" then box:CaptureFocus() return end
+                refresh()
+                if current[1] then jump(current[1]) end
+            end)
+            goBtn.MouseEnter:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = C.AccentHover }) end)
+            goBtn.MouseLeave:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = C.Accent }) end)
         end
-
-        -- minimize / close
-        minB.MouseButton1Click:Connect(hideUI)
-        closeB.MouseButton1Click:Connect(hideUI)
 
 
         -- ===== theme API + ready-made Theme tab =====
@@ -2273,7 +2187,6 @@ else
         Shooting = {
             AuralEnabled = false, AuralKeybind = Enum.KeyCode.X,
             ShotYAxis = 0, ShotDelay = 0.32, EBLHop = false,
-            NoJump = false, NoJumpKeybind = Enum.KeyCode.C,
             HumanizeAim = false, HumanizeStrength = 1.2, MissChance = 0,
             RandomizeShotDelay = false, ShotDelayMin = 0.25, ShotDelayMax = 0.38,
         },
@@ -2288,31 +2201,13 @@ else
         },
         MagV2 = { Enabled = false, BallName = "Ball", Reach = 20, Keybind = Enum.KeyCode.U },
         TPWalk = { Enabled = false, Speed = 0.01, Keybind = Enum.KeyCode.P },
-        SelfPass = { Keybind = Enum.KeyCode.G, Height = 60, Power = 70, GrabReach = 20, CatchTime = 2.5 },
-        AutoDefense = {
-            Enabled = false, Keybind = Enum.KeyCode.V,
-            -- spin
-            Mode = "Mix",                 -- Spin | Jitter | Mix
-            Direction = "Alternate",      -- Clockwise | Counter-Clockwise | Alternate | Random
-            Trigger = "Defender nearby",  -- Defender nearby | Always
-            SpinSpeed = 900,              -- degrees per second
-            JitterAngle = 40,             -- degrees per flick (Jitter mode)
-            FlipTime = 0.25,              -- seconds between direction/speed changes
-            -- evade
-            Evade = true,
-            Bias = "Straight Away",       -- Straight Away | Away + Left | Away + Right
-            EvadeSpeed = 14,              -- studs per second pushed away from the defender
-            Radius = 12,                  -- how close a defender must be to react
-            Control = 60,                 -- % of the evade push your own steering cancels
-            IgnoreTeam = true,
-        },
         HVH = {
             HipHeight = { Enabled = false, Value = 0, Default = 0 },
             Swim = { Enabled = false, Power = 1 },
             Speed = { Enabled = false, Mult = 1.35, Keybind = Enum.KeyCode.RightShift },
             InfiniteJump = { Enabled = false, Power = 1, Count = 2 },
         },
-        Misc = { AntiModerator = false, DeviceSpoofer = false, Device = "PC", MobilePanel = false },
+        Misc = { AntiModerator = false, DeviceSpoofer = false, Device = "PC", MobilePanel = true },
         Visuals = {
             ShotIndicator = false, IndicatorColor = "Purple",
             CustomName = false, CustomNameText = "",
@@ -2336,7 +2231,6 @@ else
 
     local setAural, setGuard, setMagnet, setReach, setTPWalk, setMagV2
     local MobileRefresh = function() end
-    local setMobileButtons = function(v) s.Misc.MobilePanel = v and true or false end
 
     local IndicatorColors = {
         Blue = Color3.fromRGB(60, 150, 255),
@@ -2821,122 +2715,6 @@ else
         if tpWalkConnection then tpWalkConnection:Disconnect(); tpWalkConnection = nil end
     end
 
-    -- ============================================================
-    -- AUTO MIX (spin / jitter / mix + evade the guarding player)
-    -- Spins / jitters / mixes your character and slides it away from
-    -- the nearest defender. Everything is adjustable from the HVH tab.
-    -- ============================================================
-    local adConn = nil
-    local ad = { flipT = 0, dynSign = 1, mixFlip = 1, speedMul = 1, jit = 1 }
-
-    local function adFlat(v) return Vector3.new(v.X, 0, v.Z) end
-
-    local function adNearestDefender(myPos, radius, ignoreTeam)
-        local best, bestDist = nil, radius
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and not (ignoreTeam and LocalPlayer.Team ~= nil and plr.Team == LocalPlayer.Team) then
-                local ch = plr.Character
-                local r = ch and ch:FindFirstChild("HumanoidRootPart")
-                local h = ch and ch:FindFirstChildOfClass("Humanoid")
-                if r and h and h.Health > 0 then
-                    local d = (adFlat(r.Position) - adFlat(myPos)).Magnitude
-                    if d < bestDist then best, bestDist = r, d end
-                end
-            end
-        end
-        return best, bestDist
-    end
-
-    -- returns how many radians to rotate this frame
-    local function adSpinStep(cfg, dt)
-        if cfg.Mode == "Jitter" then
-            ad.jit = -ad.jit
-            return ad.jit * math.rad(cfg.JitterAngle)
-        end
-
-        ad.flipT = ad.flipT + dt
-        if ad.flipT >= math.max(cfg.FlipTime, 0.03) then
-            ad.flipT = 0
-            if cfg.Direction == "Alternate" then
-                ad.dynSign = -ad.dynSign
-            elseif cfg.Direction == "Random" then
-                ad.dynSign = (math.random() < 0.5) and -1 or 1
-            end
-            if cfg.Mode == "Mix" then
-                ad.speedMul = 0.5 + math.random() * 1.1          -- speed wobbles 0.5x .. 1.6x
-                ad.mixFlip = (math.random() < 0.3) and -ad.mixFlip or ad.mixFlip -- sometimes flips on its own
-            else
-                ad.speedMul, ad.mixFlip = 1, 1
-            end
-        end
-
-        local sign
-        if cfg.Direction == "Clockwise" then sign = -1
-        elseif cfg.Direction == "Counter-Clockwise" then sign = 1
-        else sign = ad.dynSign end
-        if cfg.Mode ~= "Mix" then ad.mixFlip, ad.speedMul = 1, 1 end
-        return sign * ad.mixFlip * ad.speedMul * math.rad(cfg.SpinSpeed) * dt
-    end
-
-    local function disableAutoDefense()
-        if adConn then adConn:Disconnect(); adConn = nil end
-        local _, hum = getChar()
-        if hum then hum.AutoRotate = true end
-    end
-
-    local function enableAutoDefense()
-        if adConn then adConn:Disconnect(); adConn = nil end
-        ad.flipT, ad.dynSign, ad.mixFlip, ad.speedMul, ad.jit = 0, 1, 1, 1, 1
-        adConn = RunService.Heartbeat:Connect(function(dt)
-            local cfg = s.AutoDefense
-            if not cfg.Enabled then return end
-            local _, hum, hrp = getChar()
-            if not hum or not hrp or hum.Health <= 0 then return end
-
-            -- let the script own your facing while it is on
-            if hum.AutoRotate then hum.AutoRotate = false end
-
-            local defender, dist = adNearestDefender(hrp.Position, cfg.Radius, cfg.IgnoreTeam)
-
-            -- evade: slide away from the guard, softened by your own steering
-            local move = Vector3.zero
-            if cfg.Evade and defender then
-                local away = adFlat(hrp.Position - defender.Position)
-                if away.Magnitude > 0.01 then
-                    away = away.Unit
-                    local dir = away
-                    if cfg.Bias ~= "Straight Away" then
-                        local right = Vector3.new(-away.Z, 0, away.X) -- right-hand side of the escape line
-                        if cfg.Bias == "Away + Left" then right = -right end
-                        dir = (away + right * 0.8).Unit
-                    end
-                    local steering = (hum.MoveDirection.Magnitude > 0.1) and (cfg.Control / 100) or 0
-                    local closeness = 1 - math.clamp(dist / math.max(cfg.Radius, 1), 0, 1) * 0.5
-                    move = dir * math.min(cfg.EvadeSpeed, 40) * dt * (1 - steering) * closeness
-                end
-            end
-
-            -- spin: always, or only while somebody is guarding you
-            local rot = 0
-            if cfg.Trigger == "Always" or defender then
-                rot = adSpinStep(cfg, dt)
-            end
-
-            if move == Vector3.zero and rot == 0 then return end
-            local cf = hrp.CFrame + move
-            if rot ~= 0 then cf = cf * CFrame.Angles(0, rot, 0) end
-            hrp.CFrame = cf
-        end)
-        Track(adConn)
-    end
-
-    local function setAutoDefense(on)
-        if on == nil then on = not s.AutoDefense.Enabled end
-        s.AutoDefense.Enabled = on and true or false
-        if s.AutoDefense.Enabled then enableAutoDefense() else disableAutoDefense() end
-        MobileRefresh()
-    end
-
     local magV2Connection = nil
 
     local function magV2Tick()
@@ -3406,7 +3184,6 @@ else
 
     local auralTick = 0
     local function updateAuralTarget(dt)
-        if state.selfPassing then return end
         if not state.active or not s.Shooting.AuralEnabled then
             if state.target ~= nil then settarget(nil) end
             return
@@ -3532,8 +3309,18 @@ end)
     addconnection(Players.PlayerAdded:Connect(function() task.defer(hookactors) end))
     addconnection(RunService.Heartbeat:Connect(updateAuralTarget))
 
-    -- the whole shot sequence (aim at the goal, set power, wait, click)
-    local function runAuralShot(char)
+    local function setupCharacterAural(char)
+        local hum = char:WaitForChild("Humanoid", 5)
+        if not hum then return end
+        local jumps = 0
+        addconnection(hum.Jumping:Connect(function(active)
+            if not active then return end
+            if not s.Shooting.AuralEnabled or not hasball(char) then return end
+            if s.Shooting.EBLHop then
+                jumps += 1
+                if jumps < 2 then return end
+                jumps = 0
+            end
             local root = char:FindFirstChild("HumanoidRootPart")
             if not root then return end
             local goal, distance = nearestgoal(root)
@@ -3575,123 +3362,11 @@ end)
             doClick()
             task.wait(0.1)
             updateAuralTarget(0.1)
-    end
-
-    -- ============================================================
-    -- SELF PASS: throws the ball straight up, then catches it for you
-    -- ============================================================
-    local selfPassBusy = false
-
-    local function findThrownBall(origin, maxDist)
-        local names = { Ball = true }
-        if s.MagV2 and s.MagV2.BallName then names[s.MagV2.BallName] = true end
-        local best, bestD = nil, maxDist
-        for _, inst in ipairs(workspace:GetDescendants()) do
-            if inst:IsA("BasePart") and names[inst.Name]
-                and (inst:FindFirstChildWhichIsA("TouchTransmitter") or inst:FindFirstChild("TouchInterest")) then
-                local d = (inst.Position - origin).Magnitude
-                if d < bestD then best, bestD = inst, d end
-            end
-        end
-        return best
-    end
-
-    local function runSelfPass()
-        if selfPassBusy then return end
-        local cfg = s.SelfPass
-        local char, _, root = getChar()
-        if not char or not root or not hasball(char) then
-            if Notify then pcall(Notify, { title = "Self Pass", content = "You need the ball first.", duration = 2 }) end
-            return
-        end
-        selfPassBusy = true
-        state.selfPassing = true
-        task.spawn(function()
-            pcall(function()
-                -- 1. aim straight up and throw
-                local up = root.Position + root.CFrame.LookVector * 0.5 + Vector3.new(0, cfg.Height, 0)
-                settarget(up)
-                task.wait(0.05)
-                LocalPlayer:SetAttribute("Power", cfg.Power)
-                task.wait(0.05)
-                doClick()
-
-                -- 2. wait for the ball to leave your hands (keep the aim locked meanwhile)
-                local t0 = os.clock()
-                while hasball(char) and os.clock() - t0 < 1.2 do
-                    settarget(up)
-                    task.wait()
-                end
-                settarget(nil)
-                if hasball(char) then return end -- the throw never happened
-
-                -- 3. catch it
-                local ball, nextFind = nil, 0
-                local tCatch = os.clock()
-                while os.clock() - tCatch < cfg.CatchTime do
-                    if hasball(char) or not root.Parent then break end
-                    if (not ball or not ball.Parent) and os.clock() >= nextFind then
-                        ball = findThrownBall(root.Position, 80)
-                        nextFind = os.clock() + 0.15
-                    end
-                    if ball and ball.Parent then
-                        local d = (ball.Position - root.Position).Magnitude
-                        if d <= cfg.GrabReach then
-                            pcall(function()
-                                firetouchinterest(root, ball, 0)
-                                firetouchinterest(root, ball, 1)
-                            end)
-                            -- once it is on the way down, guide it into your hands
-                            if not ball.Anchored and ball.AssemblyLinearVelocity.Y < 0 then
-                                ball.AssemblyLinearVelocity = (root.Position + Vector3.new(0, 2, 0) - ball.Position) * 10
-                            end
-                        end
-                    end
-                    task.wait()
-                end
-            end)
-            settarget(nil)
-            state.selfPassing = false
-            selfPassBusy = false
-        end)
-    end
-
-    local function setupCharacterAural(char)
-        local hum = char:WaitForChild("Humanoid", 5)
-        if not hum then return end
-        local jumps = 0
-        addconnection(hum.Jumping:Connect(function(active)
-            if not active then return end
-            if not s.Shooting.AuralEnabled or not hasball(char) then return end
-            if s.Shooting.EBLHop then
-                jumps += 1
-                if jumps < 2 then return end
-                jumps = 0
-            end
-            runAuralShot(char)
         end))
     end
 
     if LocalPlayer.Character then setupCharacterAural(LocalPlayer.Character) end
     addconnection(LocalPlayer.CharacterAdded:Connect(setupCharacterAural))
-
-    -- No-jump silent aim: same shot, started by a keypress instead of a jump
-    local noJumpBusy = false
-    addconnection(UserInputService.InputBegan:Connect(function(input, gpe)
-        if gpe or noJumpBusy then return end
-        if not s.Shooting.NoJump or not s.Shooting.AuralEnabled then return end
-        if input.KeyCode ~= s.Shooting.NoJumpKeybind then return end
-        local char = LocalPlayer.Character
-        if not char or not hasball(char) then return end
-        noJumpBusy = true
-        pcall(runAuralShot, char)
-        noJumpBusy = false
-    end))
-
-    addconnection(UserInputService.InputBegan:Connect(function(input, gpe)
-        if gpe then return end
-        if input.KeyCode == s.SelfPass.Keybind then runSelfPass() end
-    end))
 
     local textListeners = {}
     local originalNameTexts, originalRecordTexts, originalTitleTexts = {}, {}, {}
@@ -4149,11 +3824,11 @@ end)
 
     Notify = function(props) Window:Notify(props) end
 
-    local CombatTab = Window:CreateTab({ Name = "Combat", Icon = "swords" })
+    local CombatTab = Window:CreateTab({ Name = "Main", Icon = "swords" })
     local BallTab = Window:CreateTab({ Name = "Ball", Icon = "circle" })
+    local HVHTab = Window:CreateTab({ Name = "HVH", Icon = "activity" })
     local VisualsTab = Window:CreateTab({ Name = "Visuals", Icon = "eye" })
     local PrivacyTab = Window:CreateTab({ Name = "Privacy", Icon = "user" })
-    local HVHTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
     local UtilityTab = Window:CreateTab({ Name = "Utility", Icon = "list" })
     pcall(function() Window:CreateThemeTab() end)
 
@@ -4177,18 +3852,6 @@ end)
         Name = "EBL Hop", Desc = "Require second jump before firing.",
         Flag = "bytewtf_ebl", CurrentValue = s.Shooting.EBLHop,
         Callback = function(v) s.Shooting.EBLHop = v end,
-    })
-    CombatTab:CreateToggle({
-        Name = "No jump silent aim", Desc = "Fires the silent aim from a keypress, no jump needed.",
-        Flag = "bytewtf_nojump", CurrentValue = s.Shooting.NoJump,
-        Callback = function(v) s.Shooting.NoJump = v end,
-    })
-    CombatTab:CreateKeybind({
-        Name = "No jump keybind", Flag = "bytewtf_nojump_key",
-        CurrentValue = s.Shooting.NoJumpKeybind,
-        Callback = function(key)
-            if typeof(key) == "EnumItem" then s.Shooting.NoJumpKeybind = key end
-        end,
     })
     CombatTab:CreateSlider({
         Name = "Shot delay",
@@ -4260,87 +3923,6 @@ end)
         Name = "Prediction strength", Range = { 0.1, 1 }, Increment = 0.05,
         CurrentValue = s.Defending.GuardPrediction, Flag = "bytewtf_guard_pred",
         Callback = function(v) s.Defending.GuardPrediction = v end,
-    })
-
-    CombatTab:CreateSection("Auto Mix")
-    CombatTab:CreateToggle({
-        Name = "Auto mix", Desc = "Spins / mixes you and slides you away from whoever is guarding you.",
-        Flag = "bytewtf_ad", CurrentValue = s.AutoDefense.Enabled,
-        Callback = function(v) setAutoDefense(v) end,
-    })
-    CombatTab:CreateKeybind({
-        Name = "Auto mix keybind", Flag = "bytewtf_ad_key",
-        CurrentValue = s.AutoDefense.Keybind,
-        Callback = function(key)
-            if typeof(key) == "EnumItem" then s.AutoDefense.Keybind = key end
-        end,
-    })
-    CombatTab:CreateDropdown({
-        Name = "Spin mode", Options = { "Spin", "Jitter", "Mix" },
-        CurrentValue = s.AutoDefense.Mode, Flag = "bytewtf_ad_mode",
-        Callback = function(v) s.AutoDefense.Mode = v end,
-    })
-    CombatTab:CreateDropdown({
-        Name = "Spin direction", Options = { "Clockwise", "Counter-Clockwise", "Alternate", "Random" },
-        CurrentValue = s.AutoDefense.Direction, Flag = "bytewtf_ad_dir",
-        Callback = function(v) s.AutoDefense.Direction = v end,
-    })
-    CombatTab:CreateDropdown({
-        Name = "Spin when", Options = { "Defender nearby", "Always" },
-        CurrentValue = s.AutoDefense.Trigger, Flag = "bytewtf_ad_trigger",
-        Callback = function(v) s.AutoDefense.Trigger = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Spin speed", Desc = "Degrees per second (Spin / Mix).",
-        Range = { 90, 3600 }, Increment = 30, Suffix = "deg/s",
-        CurrentValue = s.AutoDefense.SpinSpeed, Flag = "bytewtf_ad_speed",
-        Callback = function(v) s.AutoDefense.SpinSpeed = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Jitter angle", Desc = "How far each flick turns you (Jitter mode).",
-        Range = { 5, 120 }, Increment = 5, Suffix = "deg",
-        CurrentValue = s.AutoDefense.JitterAngle, Flag = "bytewtf_ad_jitter",
-        Callback = function(v) s.AutoDefense.JitterAngle = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Switch time", Desc = "How often Alternate / Random / Mix change things up.",
-        Range = { 0.05, 1.5 }, Increment = 0.05, Suffix = "s",
-        CurrentValue = s.AutoDefense.FlipTime, Flag = "bytewtf_ad_flip",
-        Callback = function(v) s.AutoDefense.FlipTime = v end,
-    })
-
-    CombatTab:CreateSection("Auto Mix: Evade")
-    CombatTab:CreateToggle({
-        Name = "Move away from defender", Desc = "Pushes your body away from the closest guard.",
-        Flag = "bytewtf_ad_evade", CurrentValue = s.AutoDefense.Evade,
-        Callback = function(v) s.AutoDefense.Evade = v end,
-    })
-    CombatTab:CreateDropdown({
-        Name = "Evade direction", Options = { "Straight Away", "Away + Left", "Away + Right" },
-        CurrentValue = s.AutoDefense.Bias, Flag = "bytewtf_ad_bias",
-        Callback = function(v) s.AutoDefense.Bias = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Evade speed", Desc = "Studs per second pushed away from the defender.",
-        Range = { 1, 40 }, Increment = 1,
-        CurrentValue = s.AutoDefense.EvadeSpeed, Flag = "bytewtf_ad_evspeed",
-        Callback = function(v) s.AutoDefense.EvadeSpeed = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Detect radius", Desc = "A defender must be this close to trigger it.",
-        Range = { 4, 30 }, Increment = 1, Suffix = "studs",
-        CurrentValue = s.AutoDefense.Radius, Flag = "bytewtf_ad_radius",
-        Callback = function(v) s.AutoDefense.Radius = v end,
-    })
-    CombatTab:CreateSlider({
-        Name = "Your control", Desc = "How much your own movement cancels the push (100 = you fully steer).",
-        Range = { 0, 100 }, Increment = 5, Suffix = "%",
-        CurrentValue = s.AutoDefense.Control, Flag = "bytewtf_ad_control",
-        Callback = function(v) s.AutoDefense.Control = v end,
-    })
-    CombatTab:CreateToggle({
-        Name = "Ignore teammates", Flag = "bytewtf_ad_team", CurrentValue = s.AutoDefense.IgnoreTeam,
-        Callback = function(v) s.AutoDefense.IgnoreTeam = v end,
     })
 
     BallTab:CreateSection("Ball Magnet")
@@ -4431,62 +4013,32 @@ end)
         end,
     })
 
-    BallTab:CreateSection("Self Pass")
-    BallTab:CreateButton({
-        Name = "Self pass", Desc = "Throws the ball straight up, then catches it.",
-        Callback = function() runSelfPass() end,
-    })
-    BallTab:CreateKeybind({
-        Name = "Self pass keybind", Flag = "bytewtf_selfpass_key",
-        CurrentValue = s.SelfPass.Keybind,
-        Callback = function(key)
-            if typeof(key) == "EnumItem" then s.SelfPass.Keybind = key end
-        end,
-    })
-    BallTab:CreateSlider({
-        Name = "Throw height", Desc = "How high the ball is aimed above you.",
-        Range = { 20, 120 }, Increment = 5,
-        CurrentValue = s.SelfPass.Height, Flag = "bytewtf_selfpass_height",
-        Callback = function(v) s.SelfPass.Height = v end,
-    })
-    BallTab:CreateSlider({
-        Name = "Throw power", Range = { 20, 100 }, Increment = 5,
-        CurrentValue = s.SelfPass.Power, Flag = "bytewtf_selfpass_power",
-        Callback = function(v) s.SelfPass.Power = v end,
-    })
-    BallTab:CreateSlider({
-        Name = "Catch reach", Desc = "How close the ball must be before you grab it.",
-        Range = { 5, 40 }, Increment = 1, Suffix = "studs",
-        CurrentValue = s.SelfPass.GrabReach, Flag = "bytewtf_selfpass_reach",
-        Callback = function(v) s.SelfPass.GrabReach = v end,
-    })
-
-    buildHVHTab(HVHTab, s.HVH)
-
-    HVHTab:CreateSection("TPWalk")
-    HVHTab:CreateToggle({
+    BallTab:CreateSection("TPWalk")
+    BallTab:CreateToggle({
         Name = "tpwalk",
         Desc = "Teleport-walk; nudges your root part each frame for a smooth glide.",
         Flag = "bytewtf_tpwalk", CurrentValue = s.TPWalk.Enabled,
         Callback = function(v) setTPWalk(v) end,
     })
-    HVHTab:CreateKeybind({
+    BallTab:CreateKeybind({
         Name = "tpwalk keybind", Flag = "bytewtf_tpwalk_key",
         CurrentValue = s.TPWalk.Keybind,
         Callback = function(key)
             if typeof(key) == "EnumItem" then s.TPWalk.Keybind = key end
         end,
     })
-    HVHTab:CreateSlider({
+    BallTab:CreateSlider({
         Name = "tpwalk speed", Desc = "Step distance per frame (0.001 – 0.06).",
         Range = { 0.001, 0.06 }, Increment = 0.001,
         CurrentValue = s.TPWalk.Speed, Flag = "bytewtf_tpwalk_speed",
         Callback = function(v) s.TPWalk.Speed = v end,
     })
 
-    VisualsTab:CreateSection("Shot Indicator")
+    buildHVHTab(HVHTab, s.HVH)
+
+    VisualsTab:CreateSection("Aimbot Range Indicator")
     VisualsTab:CreateToggle({
-        Name = "Shot indicator", Flag = "bytewtf_ind",
+        Name = "Aimbot range indicator", Flag = "bytewtf_ind",
         CurrentValue = s.Visuals.ShotIndicator,
         Callback = setShotIndicator,
     })
@@ -4497,7 +4049,7 @@ end)
         Callback = function(v) s.Visuals.IndicatorColor = v; applyIndicatorColor() end,
     })
 
-    VisualsTab:CreateSection("Goal Effect Changer")
+    VisualsTab:CreateSection("Goal Effect")
     local function getEffectNames()
         local names = {}
         for k in pairs(Effects) do table.insert(names, k) end
@@ -4592,37 +4144,13 @@ end)
         end,
     })
 
-    PrivacyTab:CreateSection("Device Spoofer")
-    PrivacyTab:CreateToggle({
-        Name = "Device spoofer", Flag = "bytewtf_dev", CurrentValue = s.Misc.DeviceSpoofer,
-        Callback = function(v) s.Misc.DeviceSpoofer = v; SpoofDevice() end,
-    })
-    PrivacyTab:CreateDropdown({
-        Name = "Device", Options = { "PC", "Mobile", "Gamepad" },
-        CurrentValue = s.Misc.Device, Flag = "bytewtf_dev_sel",
-        Callback = function(v) s.Misc.Device = v; SpoofDevice() end,
-    })
-
-    PrivacyTab:CreateSection("Logo Changer")
-    for _, n in ipairs(LogoNames) do
-        PrivacyTab:CreateToggle({
-            Name = n .. " logo", Desc = "Shows the " .. n .. " icon on your own nametag (only you see it).",
-            Flag = "bytewtf_logo_" .. n:lower(), CurrentValue = logoDefault(n),
-            Callback = function(v) applyLogo(n, v) end,
-        })
-    end
-    PrivacyTab:CreateButton({
-        Name = "Reset logos",
-        Callback = function() resetLogos() end,
-    })
-
-    PrivacyTab:CreateSection("Nameplate & Title")
-    PrivacyTab:CreateToggle({
+    VisualsTab:CreateSection("Nameplate & Title")
+    VisualsTab:CreateToggle({
         Name = "Hide my nameplate & tags", Flag = "bytewtf_np_hide",
         CurrentValue = s.Visuals.HideOwnNameplate,
         Callback = function(v) s.Visuals.HideOwnNameplate = v; applyOwnNameplate() end,
     })
-    PrivacyTab:CreateInput({
+    VisualsTab:CreateInput({
         Name = "Custom username", Placeholder = "e.g. Byte",
         CurrentValue = s.Visuals.CustomNameText, Flag = "bytewtf_np_name",
         Callback = function(text)
@@ -4631,7 +4159,7 @@ end)
             applyOwnNameplate()
         end,
     })
-    PrivacyTab:CreateInput({
+    VisualsTab:CreateInput({
         Name = "Custom record", Placeholder = "e.g. 99-0",
         CurrentValue = s.Visuals.CustomRecordText, Flag = "bytewtf_np_rec",
         Callback = function(text)
@@ -4640,7 +4168,7 @@ end)
             applyOwnNameplate()
         end,
     })
-    PrivacyTab:CreateInput({
+    VisualsTab:CreateInput({
         Name = "Custom title", Placeholder = "e.g. Byte Elite",
         CurrentValue = s.Visuals.CustomTitleText, Flag = "bytewtf_np_title",
         Callback = function(text)
@@ -4655,7 +4183,7 @@ end)
     -- PLAYER MORPH (client-side avatar change)
     -- ============================================================
     do
-        PrivacyTab:CreateSection("Player Morph")
+        VisualsTab:CreateSection("Player Morph")
         local morphOriginal
         local typedName = ""
         local pickedPlayer
@@ -4701,12 +4229,12 @@ end)
             end)
         end
 
-        PrivacyTab:CreateInput({
+        VisualsTab:CreateInput({
             Name = "Username", Placeholder = "any Roblox username",
             CurrentValue = "", Flag = "bytewtf_morph_name",
             Callback = function(t) typedName = t end,
         })
-        PrivacyTab:CreateButtonRow({
+        VisualsTab:CreateButtonRow({
             { Name = "Morph into username", Callback = function()
                 task.spawn(function()
                     local name = typedName
@@ -4719,8 +4247,8 @@ end)
             end },
             { Name = "Reset avatar", Style = "Secondary", Callback = doReset },
         })
-        PrivacyTab:CreateDivider()
-        PrivacyTab:CreateDropdown({
+        VisualsTab:CreateDivider()
+        VisualsTab:CreateDropdown({
             Name = "Select player", Placeholder = "In this server", Options = {},
             Dynamic = function()
                 local list = {}
@@ -4732,7 +4260,7 @@ end)
             end,
             Callback = function(v) pickedPlayer = v end,
         })
-        PrivacyTab:CreateButtonRow({
+        VisualsTab:CreateButtonRow({
             { Name = "Morph into player", Callback = function()
                 task.spawn(function()
                     local plr = pickedPlayer and Players:FindFirstChild(pickedPlayer)
@@ -4745,8 +4273,32 @@ end)
         })
     end
 
-    VisualsTab:CreateSection("Ball Changer")
-    VisualsTab:CreateDropdown({
+    PrivacyTab:CreateSection("Device Spoofer")
+    PrivacyTab:CreateToggle({
+        Name = "Device spoofer", Flag = "bytewtf_dev", CurrentValue = s.Misc.DeviceSpoofer,
+        Callback = function(v) s.Misc.DeviceSpoofer = v; SpoofDevice() end,
+    })
+    PrivacyTab:CreateDropdown({
+        Name = "Device", Options = { "PC", "Mobile", "Gamepad" },
+        CurrentValue = s.Misc.Device, Flag = "bytewtf_dev_sel",
+        Callback = function(v) s.Misc.Device = v; SpoofDevice() end,
+    })
+
+    PrivacyTab:CreateSection("Logo Changer")
+    for _, n in ipairs(LogoNames) do
+        PrivacyTab:CreateToggle({
+            Name = n .. " logo", Desc = "Shows the " .. n .. " icon on your own nametag (only you see it).",
+            Flag = "bytewtf_logo_" .. n:lower(), CurrentValue = logoDefault(n),
+            Callback = function(v) applyLogo(n, v) end,
+        })
+    end
+    PrivacyTab:CreateButton({
+        Name = "Reset logos",
+        Callback = function() resetLogos() end,
+    })
+
+    PrivacyTab:CreateSection("Ball Changer")
+    PrivacyTab:CreateDropdown({
         Name = "Select ball", Options = #BallNames > 0 and BallNames or { "None" },
         CurrentValue = s.BallChanger.SelectedBall, Flag = "bytewtf_ball_sel",
         Callback = function(v)
@@ -4755,7 +4307,7 @@ end)
             if s.BallChanger.Enabled then pcall(applyBallChanger) end
         end,
     })
-    VisualsTab:CreateToggle({
+    PrivacyTab:CreateToggle({
         Name = "Enable ball changer", Flag = "bytewtf_ball",
         CurrentValue = s.BallChanger.Enabled,
         Callback = function(v)
@@ -4763,7 +4315,7 @@ end)
             if v then pcall(applyBallChanger) else pcall(resetBallChanger) end
         end,
     })
-    VisualsTab:CreateButton({
+    PrivacyTab:CreateButton({
         Name = "Reset ball",
         Callback = function()
             s.BallChanger.Enabled = false
@@ -4773,8 +4325,8 @@ end)
         end,
     })
 
-    VisualsTab:CreateSection("Trail Spoofer")
-    VisualsTab:CreateDropdown({
+    PrivacyTab:CreateSection("Trail Spoofer")
+    PrivacyTab:CreateDropdown({
         Name = "Select trail", Options = #TrailNames > 0 and TrailNames or { "None" },
         CurrentValue = s.TrailSpoofer.SelectedTrail, Flag = "bytewtf_trail_sel",
         Callback = function(v)
@@ -4783,7 +4335,7 @@ end)
             if s.TrailSpoofer.Enabled then pcall(applyTrailSpoofer) end
         end,
     })
-    VisualsTab:CreateToggle({
+    PrivacyTab:CreateToggle({
         Name = "Enable trail spoofer", Flag = "bytewtf_trail",
         CurrentValue = s.TrailSpoofer.Enabled,
         Callback = function(v)
@@ -4791,7 +4343,7 @@ end)
             if v then pcall(applyTrailSpoofer) else pcall(resetTrailSpoofer) end
         end,
     })
-    VisualsTab:CreateButton({
+    PrivacyTab:CreateButton({
         Name = "Reset trail",
         Callback = function()
             s.TrailSpoofer.Enabled = false
@@ -4801,8 +4353,8 @@ end)
         end,
     })
 
-    VisualsTab:CreateSection("Ball Aura Spoofer")
-    VisualsTab:CreateDropdown({
+    PrivacyTab:CreateSection("Ball Aura Spoofer")
+    PrivacyTab:CreateDropdown({
         Name = "Select aura", Options = #AuraNames > 0 and AuraNames or { "None" },
         CurrentValue = s.BallAura.SelectedAura, Flag = "bytewtf_aura_sel",
         Callback = function(v)
@@ -4811,7 +4363,7 @@ end)
             if s.BallAura.Enabled then pcall(applyBallAura) end
         end,
     })
-    VisualsTab:CreateToggle({
+    PrivacyTab:CreateToggle({
         Name = "Enable ball aura spoofer", Flag = "bytewtf_aura",
         CurrentValue = s.BallAura.Enabled,
         Callback = function(v)
@@ -4819,7 +4371,7 @@ end)
             if v then pcall(applyBallAura) else pcall(resetBallAura) end
         end,
     })
-    VisualsTab:CreateButton({
+    PrivacyTab:CreateButton({
         Name = "Reset ball aura",
         Callback = function()
             s.BallAura.Enabled = false
@@ -4837,13 +4389,6 @@ end)
             s.Misc.AntiModerator = v
             if v then startAntiMod() else stopAntiMod() end
         end,
-    })
-
-    UtilityTab:CreateSection("Mobile Buttons")
-    UtilityTab:CreateToggle({
-        Name = "Mobile buttons", Desc = "Shows the on-screen Aim / Guard / Mag / Mix / Pass buttons (touch devices).",
-        Flag = "bytewtf_mobile_buttons", CurrentValue = s.Misc.MobilePanel,
-        Callback = function(v) setMobileButtons(v) end,
     })
 
     UtilityTab:CreateSection("Config Saver")
@@ -4929,10 +4474,6 @@ end)
     end)
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == s.AutoDefense.Keybind then setAutoDefense() end
-    end)
-    UserInputService.InputBegan:Connect(function(input, gpe)
-        if gpe then return end
         if input.KeyCode == s.MagV2.Keybind then setMagV2() end
     end)
 
@@ -4950,16 +4491,10 @@ end)
 
         local Panel = Instance.new("Frame")
         Panel.Name = "Panel"
-        Panel.Size = UDim2.fromOffset(52, 360)
-        Panel.Position = UDim2.new(1, -64, 0.5, -180)
+        Panel.Size = UDim2.fromOffset(52, 320)
+        Panel.Position = UDim2.new(1, -64, 0.5, -160)
         Panel.BackgroundTransparency = 1
-        Panel.Visible = s.Misc.MobilePanel
         Panel.Parent = ScreenGui
-
-        setMobileButtons = function(v)
-            s.Misc.MobilePanel = v and true or false
-            Panel.Visible = s.Misc.MobilePanel
-        end
 
         local Layout = Instance.new("UIListLayout")
         Layout.Padding = UDim.new(0, 5)
@@ -4997,8 +4532,6 @@ end)
         local MagV2, MagV2S = makeButton("MagV2", 4, function() setMagV2() end, s.MagV2.Enabled)
         local Reach, ReachS = makeButton("Reach", 5, function() setReach() end, s.Ball.BallReach)
         local TPW, TPWS = makeButton("TPWalk", 6, function() setTPWalk() end, s.TPWalk.Enabled)
-        local Def, DefS = makeButton("Mix", 7, function() setAutoDefense() end, s.AutoDefense.Enabled)
-        makeButton("Pass", 8, function() runSelfPass() end, false)
 
         local function paint(btn, stroke, on)
             btn.BackgroundColor3 = on and Color3.fromRGB(242, 140, 62) or Color3.fromRGB(22, 14, 36)
@@ -5013,7 +4546,6 @@ end)
             paint(MagV2, MagV2S, s.MagV2.Enabled)
             paint(Reach, ReachS, s.Ball.BallReach)
             paint(TPW, TPWS, s.TPWalk.Enabled)
-            paint(Def, DefS, s.AutoDefense.Enabled)
         end
 
         local dragging = false
@@ -5050,7 +4582,6 @@ end)
         pcall(disableMagV2)
         pcall(disableReach)
         pcall(disableTPWalk)
-        pcall(disableAutoDefense)
         pcall(hvhResetAll)
         pcall(hvhStop)
         pcall(resetBallChanger)
