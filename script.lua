@@ -1,236 +1,198 @@
+local Airflow = loadstring(game:HttpGet("https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau"))()
+Airflow:LoadFont({Name = "ValleySans"})
 
-
-local lib = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
-local t1 = {
+
+local autoTime = {
 	Enabled = false,
 	ReleaseTime = 0.55,
 	ShootKey = Enum.KeyCode.E,
 	isShooting = false
 }
-local t2 = {
+
+local glide = {
 	Enabled = false,
 	GlideForce = 50,
 	FloatHeight = 1.5,
 	OriginalHipHeight = 2,
 	GlideAttachment = nil,
-	GlideVelocity = nil
+	GlideVelocity = nil,
+	Connection = nil
 }
-local t3 = {
+
+local shootKeys = {
+	E = Enum.KeyCode.E,
+	Space = Enum.KeyCode.Space,
+	F = Enum.KeyCode.F,
+	G = Enum.KeyCode.G
+}
+
+local Window = Airflow:Window({
 	Name = "Byte.WTF",
+	Subtitle = "Made By Xen",
 	LoadingTitle = "BYTE.WTF On Top",
 	LoadingSubtitle = "Made By Xen",
-	ConfigurationSaving = {
-		Enabled = false
-	},
-	KeySystem = false,
-	KeySettings = {
-		Title = "Maddura Basketball",
-		Subtitle = "Key System",
-		Note = "Enter the key to access the script join discord.gg/maddura for key",
-		FileName = "MadduraKeyConfig",
-		Key = { "maddurabasketball" }
-	}
-}
-local v8 = lib.CreateWindow(lib, t3)
-local v9 = v8:CreateTab("Auto Timing", 4483362458)
+	Keybind = "RightControl"
+})
 
-v9:CreateParagraph({
+-- Auto Timing tab
+local TimingTab = Window:Tab({Name = "Auto Timing", Icon = "timer"})
+
+TimingTab:Paragraph({
 	Title = "⚠️ Important Note",
-	Content = "You have to configure the timing for the shots you want to do like fade aways, mids, and three pointers. This script isn\'t a guaranteed green and you have to have good timing for your shot. You aren\'t going to green it in someone\'s face although it\'s possible but very unlikely, and you cannot drain it from half court every time. Contest and range still matter!"
+	Content = "You have to configure the timing for the shots you want to do like fade aways, mids, and three pointers. This script isn't a guaranteed green and you have to have good timing for your shot. You aren't going to green it in someone's face although it's possible but very unlikely, and you cannot drain it from half court every time. Contest and range still matter!"
 })
-v9.CreateToggle(v9, {
+
+TimingTab:Toggle({
 	Name = "Auto Time Shots",
-	CurrentValue = false,
+	Default = false,
 	Flag = "AutoTimeToggle",
-	Callback = function(p1)
-		t1.Enabled = p1
+	Callback = function(value)
+		autoTime.Enabled = value
 	end
 })
-v9.CreateSlider(v9, {
+
+TimingTab:Slider({
 	Name = "Release Time (Seconds)",
-	Range = { 0.1, 1.5 },
-	Increment = 0.01,
+	Min = 0.1,
+	Max = 1.5,
+	Step = 0.01,
 	Suffix = "s",
-	CurrentValue = 0.55,
+	Default = 0.55,
 	Flag = "ReleaseTimeSlider",
-	Callback = function(p2)
-		t1.ReleaseTime = p2
+	Callback = function(value)
+		autoTime.ReleaseTime = value
 	end
 })
-v9.CreateDropdown(v9, {
+
+TimingTab:Dropdown({
 	Name = "Game Shoot Key",
-	Options = {
-		"E",
-		"Space",
-		"F",
-		"G"
-	},
-	CurrentOption = "E",
+	Options = {"E", "Space", "F", "G"},
+	Default = "E",
 	Flag = "ShootKeyDropdown",
-	Callback = function(p3)
-		local v10 = p3[1]
-
-		if v10 == "E" then
-			t1.ShootKey = Enum.KeyCode.E
-
-			return
-		end
-
-		if v10 == "Space" then
-			t1.ShootKey = Enum.KeyCode.Space
-
-			return
-		end
-
-		if v10 == "F" then
-			t1.ShootKey = Enum.KeyCode.F
-
-			return
-		end
-
-		if v10 ~= "G" then
-			return
-		end
-
-		t1.ShootKey = Enum.KeyCode.G
+	Callback = function(option)
+		autoTime.ShootKey = shootKeys[option] or Enum.KeyCode.E
 	end
 })
-v9.CreateKeybind(v9, {
+
+TimingTab:Keybind({
 	Name = "Trigger Auto-Shoot",
-	CurrentKeybind = "CapsLock",
-	HoldToInteract = false,
+	Default = "CapsLock",
 	Flag = "TriggerKeybind",
-	Callback = function(_)
-		if t1.Enabled then
-			if t1.isShooting then
-				return
-			else
-				t1.isShooting = true
-				VirtualInputManager:SendKeyEvent(true, t1.ShootKey, false, game)
-				task.wait(t1.ReleaseTime)
-				VirtualInputManager:SendKeyEvent(false, t1.ShootKey, false, game)
-				t1.isShooting = false
-
-				return
-			end
+	Callback = function()
+		if not autoTime.Enabled or autoTime.isShooting then
+			return
 		end
+
+		autoTime.isShooting = true
+		VirtualInputManager:SendKeyEvent(true, autoTime.ShootKey, false, game)
+		task.wait(autoTime.ReleaseTime)
+		VirtualInputManager:SendKeyEvent(false, autoTime.ShootKey, false, game)
+		autoTime.isShooting = false
 	end
 })
 
-local v11 = v8:CreateTab("Dribble Glide", 4483362458)
+-- Dribble Glide tab
+local GlideTab = Window:Tab({Name = "Dribble Glide", Icon = "wind"})
 
-v11.CreateToggle(v11, {
+GlideTab:Toggle({
 	Name = "Enable Dribble Glide",
-	CurrentValue = false,
+	Default = false,
 	Flag = "ExtenderToggle",
-	Callback = function(p4)
-		t2.Enabled = p4
+	Callback = function(value)
+		glide.Enabled = value
 
-		if p4 then
+		if value then
 			return
 		end
 
-		if t2.GlideVelocity then
-			t2.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+		if glide.GlideVelocity then
+			glide.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
 		end
 
-		local Character = LocalPlayer.Character
+		local character = LocalPlayer.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 
-		if Character then
-			Character = Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.HipHeight = glide.OriginalHipHeight
 		end
-
-		if not Character then
-			return
-		end
-
-		Character.HipHeight = t2.OriginalHipHeight
 	end
 })
-v11.CreateSlider(v11, {
+
+GlideTab:Slider({
 	Name = "Glide / Slide Force",
-	Range = { 10, 150 },
-	Increment = 5,
+	Min = 10,
+	Max = 150,
+	Step = 5,
 	Suffix = " Force",
-	CurrentValue = 50,
+	Default = 50,
 	Flag = "GlideSlider",
-	Callback = function(p5)
-		t2.GlideForce = p5
+	Callback = function(value)
+		glide.GlideForce = value
 	end
 })
-v11.CreateSlider(v11, {
+
+GlideTab:Slider({
 	Name = "Float Height",
-	Range = { 0, 5 },
-	Increment = 0.25,
+	Min = 0,
+	Max = 5,
+	Step = 0.25,
 	Suffix = " Studs",
-	CurrentValue = 1.5,
+	Default = 1.5,
 	Flag = "FloatSlider",
-	Callback = function(p6)
-		t2.FloatHeight = p6
+	Callback = function(value)
+		glide.FloatHeight = value
 	end
 })
 
-local function v13(p7)
-	local Humanoid = p7:WaitForChild("Humanoid")
-	local HumanoidRootPart = p7:WaitForChild("HumanoidRootPart")
+-- Character setup
+local function setupGlide(character)
+	local humanoid = character:WaitForChild("Humanoid")
+	local rootPart = character:WaitForChild("HumanoidRootPart")
 
-	t2.OriginalHipHeight = Humanoid.HipHeight
+	glide.OriginalHipHeight = humanoid.HipHeight
 
-	if not HumanoidRootPart:FindFirstChild("GlideAttachment") then
-		t2.GlideAttachment = Instance.new("Attachment", HumanoidRootPart)
-		t2.GlideAttachment.Name = "GlideAttachment"
-		t2.GlideVelocity = Instance.new("LinearVelocity", t2.GlideAttachment)
-		t2.GlideVelocity.MaxForce = 1000000
-		t2.GlideVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
-		t2.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+	local existing = rootPart:FindFirstChild("GlideAttachment")
+	if not existing then
+		glide.GlideAttachment = Instance.new("Attachment", rootPart)
+		glide.GlideAttachment.Name = "GlideAttachment"
+		glide.GlideVelocity = Instance.new("LinearVelocity", glide.GlideAttachment)
+		glide.GlideVelocity.MaxForce = 1000000
+		glide.GlideVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+		glide.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
 	end
 
-	RunService.Heartbeat:Connect(function()
-		if not (not t2.Enabled or LocalPlayer.Character ~= p7) then
-			Humanoid.HipHeight = t2.OriginalHipHeight + t2.FloatHeight
+	if glide.Connection then
+		glide.Connection:Disconnect()
+	end
 
-			local MoveDirection = Humanoid.MoveDirection
+	glide.Connection = RunService.Heartbeat:Connect(function()
+		if not glide.Enabled or LocalPlayer.Character ~= character then
+			return
+		end
 
-			if MoveDirection.Magnitude > 0 then
-				t2.GlideVelocity.VectorVelocity = MoveDirection * t2.GlideForce
+		humanoid.HipHeight = glide.OriginalHipHeight + glide.FloatHeight
 
-				return
-			else
-				t2.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
-
-				return
-			end
+		local moveDirection = humanoid.MoveDirection
+		if moveDirection.Magnitude > 0 then
+			glide.GlideVelocity.VectorVelocity = moveDirection * glide.GlideForce
+		else
+			glide.GlideVelocity.VectorVelocity = Vector3.new(0, 0, 0)
 		end
 	end)
 end
-local function v17(character)
-	character:WaitForChild("HumanoidRootPart")
-	character:WaitForChild("Humanoid")
-	v13(character)
+
+LocalPlayer.CharacterAdded:Connect(setupGlide)
+
+if LocalPlayer.Character then
+	task.spawn(setupGlide, LocalPlayer.Character)
 end
 
-if not LocalPlayer.Character then
-	LocalPlayer.CharacterAdded:Connect(v17)
-	lib.Notify(lib, {
-		Title = "Loaded Successfully",
-		Content = "All things are ready!",
-		Duration = 5,
-		Image = 4483362458,
-		Actions = {}
-	})
-
-	return
-end
-
-v17(LocalPlayer.Character)
-LocalPlayer.CharacterAdded:Connect(v17)
-lib.Notify(lib, {
+Airflow:Notify({
 	Title = "Loaded Successfully",
 	Content = "All things are ready!",
 	Duration = 5,
-	Image = 4483362458,
-	Actions = {}
+	Type = "Success"
 })
