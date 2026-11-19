@@ -7,7 +7,6 @@
 -- ============================================================
 local Airflow = (function()
     local Players          = game:GetService("Players")
-
     local UIS              = game:GetService("UserInputService")
     local TweenService     = game:GetService("TweenService")
     local HttpService      = game:GetService("HttpService")
@@ -132,7 +131,7 @@ local Airflow = (function()
         gui.Parent = getGuiParent()
         Window.Gui = gui
 
-        local W, H = 780, 540
+        local W, H = 780, 520
         local scaleVal = 1
         local function calcScale()
             local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
@@ -186,7 +185,7 @@ local Airflow = (function()
         }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }) })
 
         local content = new("Frame", {
-            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -200), BackgroundTransparency = 1, Parent = root,
+            Position = UDim2.fromOffset(28, 122), Size = UDim2.new(1, -56, 1, -142), BackgroundTransparency = 1, Parent = root,
         })
 
         -- overlay for dropdown popups
@@ -716,24 +715,24 @@ local Airflow = (function()
             return Tab
         end
 
-        -- ===== search bar (bottom) =====
+        -- ===== search bar (top right of the title bar) =====
         do
             local bar = new("Frame", {
-                AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 28, 1, -16), Size = UDim2.new(1, -56, 0, 38),
-                BackgroundTransparency = 1, Parent = root,
+                AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -20, 0, 27), Size = UDim2.fromOffset(330, 34),
+                BackgroundTransparency = 1, ZIndex = 5, Parent = root,
             })
             local box = new("TextBox", {
-                Size = UDim2.new(1, -104, 1, 0), BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search any feature (silent aim, magnet, trail, config...)",
+                Size = UDim2.new(1, -84, 1, 0), BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search features...", ZIndex = 6,
                 PlaceholderColor3 = Color3.fromRGB(100, 100, 112), TextColor3 = C.Text, TextSize = 13, FontFace = font(),
                 ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = bar,
             }, { corner(8), stroke(C.Stroke), pad(14, 0, 14, 0) })
             local goBtn = new("TextButton", {
-                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(94, 38), BackgroundColor3 = C.Accent,
+                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(76, 34), BackgroundColor3 = C.Accent, ZIndex = 6,
                 Text = "Search", TextColor3 = C.BtnDark, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = bar,
             }, { corner(8) })
 
             local results = new("Frame", {
-                AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 28, 1, -62), Size = UDim2.new(1, -56, 0, 0),
+                AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -20, 0, 62), Size = UDim2.fromOffset(420, 0),
                 BackgroundColor3 = C.Field, BorderSizePixel = 0, Visible = false, ZIndex = 40, ClipsDescendants = true, Parent = root,
             }, { corner(9), stroke(C.StrokeLt) })
             local list = new("ScrollingFrame", {
@@ -801,7 +800,7 @@ local Airflow = (function()
                 if shown == 0 then
                     text(list, { Text = "No matches", TextSize = 13, TextColor3 = C.Muted, Size = UDim2.new(1, 0, 0, 36), ZIndex = 42 })
                 end
-                results.Size = UDim2.new(1, -56, 0, math.min(math.max(shown, 1), 6) * 38 + 12)
+                results.Size = UDim2.fromOffset(420, math.min(math.max(shown, 1), 6) * 38 + 12)
                 results.Visible = true
             end
 
