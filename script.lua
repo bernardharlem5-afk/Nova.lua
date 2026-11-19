@@ -34,6 +34,16 @@ local Airflow = (function()
         TabOn     = Color3.fromRGB(34, 40, 56),
         TabOnStr  = Color3.fromRGB(66, 82, 120),
         BtnDark   = Color3.fromRGB(14, 22, 38),
+        -- extra keys (these used to be hard-coded colours, now themeable)
+        SliderTrack = Color3.fromRGB(38, 38, 48),
+        LoadTrack   = Color3.fromRGB(34, 34, 43),
+        KnobOff     = Color3.fromRGB(150, 150, 162),
+        TabText     = Color3.fromRGB(200, 200, 210),
+        Placeholder = Color3.fromRGB(100, 100, 112),
+        AccentHover = Color3.fromRGB(128, 186, 255),
+        BtnHover    = Color3.fromRGB(32, 32, 40),
+        Title       = Color3.fromRGB(255, 255, 253),
+        TabSelText  = Color3.fromRGB(255, 254, 255),
     }
 
     local FAM = "rbxasset://fonts/families/GothamSSm.json"
@@ -116,6 +126,216 @@ local Airflow = (function()
         return logoAsset or nil
     end
 
+
+    -- ============================================================
+    -- THEME ENGINE
+    -- Every colour in the UI comes from the palette table `C`.
+    -- Switching a theme rewrites C, then recolours everything that
+    -- already exists (matching old palette colour -> new one).
+    -- ============================================================
+    local WHITE, BLACK = Color3.new(1, 1, 1), Color3.new(0, 0, 0)
+    local function rgbOf(c) return math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5) end
+    local function ckey(c) local r, g, b = rgbOf(c); return r * 65536 + g * 256 + b end
+    local function mix(a, b, t) return a:Lerp(b, t) end
+    local function shift(c, dr, dg, db)
+        local r, g, b = rgbOf(c)
+        return Color3.fromRGB(math.clamp(r + dr, 0, 255), math.clamp(g + dg, 0, 255), math.clamp(b + db, 0, 255))
+    end
+    local function copyT(t) local n = {} for k, v in pairs(t) do n[k] = v end return n end
+    local function toHex(c) local r, g, b = rgbOf(c); return string.format("#%02X%02X%02X", r, g, b) end
+    local function parseHex(str)
+        str = (tostring(str or ""):gsub("%s", "")):gsub("^#", "")
+        if #str == 3 then str = str:gsub(".", function(ch) return ch .. ch end) end
+        if not str:match("^%x%x%x%x%x%x$") then return nil end
+        return Color3.fromRGB(tonumber(str:sub(1, 2), 16), tonumber(str:sub(3, 4), 16), tonumber(str:sub(5, 6), 16))
+    end
+
+    -- guarantee every palette colour is unique so old->new mapping is never ambiguous
+    local function uniq(p)
+        local used = { [ckey(WHITE)] = true }
+        local keys = {}
+        for k in pairs(p) do keys[#keys + 1] = k end
+        table.sort(keys)
+        for _, k in ipairs(keys) do
+            local r, g, b = rgbOf(p[k])
+            local guard = 0
+            while used[r * 65536 + g * 256 + b] and guard < 600 do
+                guard += 1
+                if b > 0 then b -= 1 else g = (g + 1) % 256 end
+            end
+            used[r * 65536 + g * 256 + b] = true
+            p[k] = Color3.fromRGB(r, g, b)
+        end
+        return p
+    end
+
+    local function neutrals(spec)
+        local bg, flat = spec.bg, spec.flat
+        local function S(dr, dg, db) if flat then return shift(bg, dr, dr, dr) end return shift(bg, dr, dg, db) end
+        return {
+            Window = bg, TitleBar = S(2, 2, 3), Panel = S(3, 3, 4), Field = S(10, 10, 13),
+            Stroke = S(25, 25, 31), StrokeLt = S(37, 37, 46), ToggleOff = S(27, 27, 33),
+            SliderTrack = S(25, 25, 32), LoadTrack = S(21, 21, 27), BtnHover = S(19, 19, 24),
+            Text = spec.text or Color3.fromRGB(228, 228, 234),
+            Muted = mix(bg, WHITE, 0.45), Header = mix(bg, WHITE, 0.51), KnobOff = mix(bg, WHITE, 0.58),
+            TabText = mix(bg, WHITE, 0.78), Placeholder = mix(bg, WHITE, 0.38),
+            Title = Color3.fromRGB(255, 255, 253), TabSelText = Color3.fromRGB(255, 254, 255),
+        }
+    end
+
+    local function accentize(p, a, light)
+        local bg = p.Window
+        p.Accent      = a
+        p.AccentDk    = light and mix(a, BLACK, 0.35) or mix(a, bg, 0.5)
+        p.ToggleOn    = light and a or mix(a, bg, 0.3)
+        p.TabOn       = mix(bg, a, 0.22)
+        p.TabOnStr    = mix(bg, a, light and 0.45 or 0.4)
+        p.BtnDark     = light and WHITE or mix(a, BLACK, 0.85)
+        p.AccentHover = light and mix(a, BLACK, 0.12) or mix(a, WHITE, 0.17)
+    end
+
+    local DefaultPalette = copyT(C)
+    local function rgb(r, g, b) return Color3.fromRGB(r, g, b) end
+
+    local ThemeOrder = {
+        "Default", "Midnight", "Crimson", "Emerald", "Ocean", "Sunset", "Rose",
+        "Amethyst", "Cyber Yellow", "Mono", "Dracula", "Nord", "Light",
+    }
+    local Specs = {
+        ["Default"]      = { palette = DefaultPalette },
+        ["Midnight"]     = { bg = rgb(8, 9, 18),    accent = rgb(112, 128, 255) },
+        ["Crimson"]      = { bg = rgb(16, 11, 12),  accent = rgb(235, 64, 82) },
+        ["Emerald"]      = { bg = rgb(10, 15, 13),  accent = rgb(46, 204, 133) },
+        ["Ocean"]        = { bg = rgb(9, 14, 19),   accent = rgb(30, 190, 210) },
+        ["Sunset"]       = { bg = rgb(17, 12, 10),  accent = rgb(255, 140, 60) },
+        ["Rose"]         = { bg = rgb(17, 11, 15),  accent = rgb(255, 105, 160) },
+        ["Amethyst"]     = { bg = rgb(14, 11, 19),  accent = rgb(168, 110, 255) },
+        ["Cyber Yellow"] = { bg = rgb(12, 12, 10),  accent = rgb(252, 238, 10) },
+        ["Mono"]         = { bg = rgb(14, 14, 14),  accent = rgb(205, 205, 205), flat = true },
+        ["Dracula"]      = { bg = rgb(24, 25, 33),  accent = rgb(189, 147, 249), text = rgb(248, 248, 242) },
+        ["Nord"]         = { bg = rgb(30, 34, 42),  accent = rgb(136, 192, 208), text = rgb(216, 222, 233) },
+        ["Light"] = {
+            bg = rgb(238, 240, 245), accent = rgb(46, 108, 232), light = true,
+            fixed = {
+                TitleBar = rgb(246, 247, 251), Panel = rgb(250, 251, 254), Field = rgb(230, 233, 240),
+                Stroke = rgb(208, 213, 224), StrokeLt = rgb(190, 197, 212), Text = rgb(28, 31, 40),
+                Muted = rgb(108, 115, 132), Header = rgb(88, 96, 114), ToggleOff = rgb(198, 203, 214),
+                SliderTrack = rgb(205, 210, 221), LoadTrack = rgb(214, 218, 228), KnobOff = rgb(146, 153, 168),
+                TabText = rgb(62, 68, 84), Placeholder = rgb(138, 145, 160), BtnHover = rgb(220, 224, 233),
+                Title = rgb(20, 22, 32), TabSelText = rgb(18, 26, 48),
+            },
+        },
+    }
+
+    local function build(spec, accentOverride)
+        local p = spec.palette and copyT(spec.palette) or neutrals(spec)
+        for k, v in pairs(spec.fixed or {}) do p[k] = v end
+        local acc = accentOverride or ((not spec.palette) and spec.accent) or nil
+        if acc then accentize(p, acc, spec.light) end
+        return uniq(p)
+    end
+
+    local Active = { name = "Default", accent = nil }
+    Lib._guis = {}
+
+    local function recolor(gui, map)
+        local function fix(c) return map[ckey(c)] end
+        local function seq(cs)
+            local pts, changed = {}, false
+            for i, kp in ipairs(cs.Keypoints) do
+                local n = fix(kp.Value)
+                if n then changed = true end
+                pts[i] = ColorSequenceKeypoint.new(kp.Time, n or kp.Value)
+            end
+            return changed and ColorSequence.new(pts) or nil
+        end
+        for _, d in ipairs(gui:GetDescendants()) do
+            pcall(function()
+                if d:IsA("GuiObject") then
+                    local n = fix(d.BackgroundColor3); if n then d.BackgroundColor3 = n end
+                    if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+                        n = fix(d.TextColor3); if n then d.TextColor3 = n end
+                        if d:IsA("TextBox") then n = fix(d.PlaceholderColor3); if n then d.PlaceholderColor3 = n end end
+                    elseif d:IsA("ScrollingFrame") then
+                        n = fix(d.ScrollBarImageColor3); if n then d.ScrollBarImageColor3 = n end
+                    elseif d:IsA("ImageLabel") or d:IsA("ImageButton") then
+                        n = fix(d.ImageColor3); if n then d.ImageColor3 = n end
+                    end
+                elseif d:IsA("UIStroke") then
+                    local n = fix(d.Color); if n then d.Color = n end
+                elseif d:IsA("UIGradient") then
+                    local n = seq(d.Color); if n then d.Color = n end
+                end
+            end)
+        end
+    end
+
+    local function applyPalette(newP)
+        local map = {}
+        for k, old in pairs(C) do
+            local nv = newP[k]
+            if nv and ckey(old) ~= ckey(nv) then map[ckey(old)] = nv end
+        end
+        for k, v in pairs(newP) do C[k] = v end
+        for i = #Lib._guis, 1, -1 do
+            local g = Lib._guis[i]
+            if g.Parent then recolor(g, map) else table.remove(Lib._guis, i) end
+        end
+    end
+
+    local function persist()
+        pcall(function()
+            if not (writefile and Lib._folder) then return end
+            if makefolder and isfolder and not isfolder(Lib._folder) then makefolder(Lib._folder) end
+            writefile(Lib._folder .. "/theme.json", HttpService:JSONEncode({
+                name = Active.name, accent = Active.accent and toHex(Active.accent) or nil,
+            }))
+        end)
+    end
+
+    function Lib:GetThemeNames() return ThemeOrder end
+    function Lib:GetTheme() return Active.name, Active.accent end
+    function Lib:SetTheme(name)
+        local spec = Specs[name]
+        if not spec then return false end
+        Active.name, Active.accent = name, nil
+        applyPalette(build(spec))
+        persist()
+        return true
+    end
+    -- color: Color3, hex string, or nil (nil = remove accent override)
+    function Lib:SetAccent(color)
+        if type(color) == "string" then
+            if color:gsub("%s", "") == "" then color = nil else
+                color = parseHex(color)
+                if not color then return false end
+            end
+        end
+        Active.accent = color
+        applyPalette(build(Specs[Active.name], color))
+        persist()
+        return true
+    end
+    function Lib:ResetTheme()
+        Active.name, Active.accent = "Default", nil
+        applyPalette(build(Specs["Default"]))
+        persist()
+    end
+    function Lib:LoadSavedTheme()
+        pcall(function()
+            if not (isfile and readfile and Lib._folder) then return end
+            local path = Lib._folder .. "/theme.json"
+            if not isfile(path) then return end
+            local d = HttpService:JSONDecode(readfile(path))
+            local spec = d and Specs[d.name]
+            if not spec then return end
+            Active.name = d.name
+            Active.accent = d.accent and parseHex(d.accent) or nil
+            applyPalette(build(spec, Active.accent))
+        end)
+    end
+    Lib.ToHex, Lib.ParseHex = toHex, parseHex
+
     function Lib:CreateWindow(opts)
         opts = opts or {}
         local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
@@ -130,6 +350,7 @@ local Airflow = (function()
         pcall(function() if syn and syn.protect_gui then syn.protect_gui(gui) end end)
         gui.Parent = getGuiParent()
         Window.Gui = gui
+        table.insert(Lib._guis, gui)
 
         local W, H = 780, 520
         local scaleVal = 1
@@ -157,7 +378,7 @@ local Airflow = (function()
         if logo then
             new("ImageLabel", { Position = UDim2.fromOffset(24, 11), Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = titleBar })
         end
-        text(titleBar, { Text = opts.Name or "Byte.WTF", TextSize = 16, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Position = UDim2.fromOffset(logo and 66 or 28, 0), Size = UDim2.new(1, -60, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
+        text(titleBar, { Text = opts.Name or "Byte.WTF", TextSize = 16, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Title, Position = UDim2.fromOffset(logo and 66 or 28, 0), Size = UDim2.new(1, -60, 1, 0), TextXAlignment = Enum.TextXAlignment.Left })
 
         -- dragging
         do
@@ -230,9 +451,9 @@ local Airflow = (function()
             if logo then
                 new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 28), Size = UDim2.fromOffset(64, 64), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = loader })
             end
-            text(loader, { Text = opts.Name or "Byte.WTF", TextSize = 22, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Position = UDim2.fromOffset(0, 102 + yOff), Size = UDim2.new(1, 0, 0, 28) })
+            text(loader, { Text = opts.Name or "Byte.WTF", TextSize = 22, FontFace = font(Enum.FontWeight.Bold), TextColor3 = C.Title, Position = UDim2.fromOffset(0, 102 + yOff), Size = UDim2.new(1, 0, 0, 28) })
             text(loader, { Text = opts.LoadingSubtitle or "Loading", TextSize = 13, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 132 + yOff), Size = UDim2.new(1, 0, 0, 20) })
-            local barTrack = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 174 + yOff), Size = UDim2.fromOffset(280, 6), BackgroundColor3 = Color3.fromRGB(34, 34, 43), BorderSizePixel = 0, Parent = loader }, { corner(3) })
+            local barTrack = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 174 + yOff), Size = UDim2.fromOffset(280, 6), BackgroundColor3 = C.LoadTrack, BorderSizePixel = 0, Parent = loader }, { corner(3) })
             local barFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = barTrack }, {
                 corner(3), new("UIGradient", { Color = ColorSequence.new(C.AccentDk, C.Accent) }),
             })
@@ -282,6 +503,8 @@ local Airflow = (function()
         -- configs
         local cfgCfg = opts.ConfigurationSaving or {}
         local folder = cfgCfg.FolderName or "Byte.WTF"
+        Lib._folder = folder
+        Lib:LoadSavedTheme() -- re-applies the last theme the user picked
         function Window:SaveConfig(name)
             name = (name and name ~= "") and name or "default"
             local data = {}
@@ -309,7 +532,7 @@ local Airflow = (function()
             for _, o in ipairs(tabs) do
                 local on = (o == t)
                 o.Page.Visible = on
-                tween(o.Btn, 0.12, { BackgroundColor3 = on and C.TabOn or C.Panel, TextColor3 = on and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 210) })
+                tween(o.Btn, 0.12, { BackgroundColor3 = on and C.TabOn or C.Panel, TextColor3 = on and C.TabSelText or C.TabText })
                 o.BtnStroke.Color = on and C.TabOnStr or C.Stroke
             end
         end
@@ -319,7 +542,7 @@ local Airflow = (function()
             local Tab = { Panels = {}, Order = 0 }
             local btn = new("TextButton", {
                 Text = p.Name or "Tab", AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.fromOffset(0, 34),
-                BackgroundColor3 = C.Panel, TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, FontFace = font(Enum.FontWeight.Medium),
+                BackgroundColor3 = C.Panel, TextColor3 = C.TabText, TextSize = 14, FontFace = font(Enum.FontWeight.Medium),
                 AutoButtonColor = false, LayoutOrder = #tabs + 1, Parent = tabBar,
             }, { corner(8), pad(20, 0, 20, 0) })
             local bs = stroke(C.Stroke); bs.Parent = btn
@@ -393,13 +616,13 @@ local Airflow = (function()
                     text(row, { Text = o.Desc, TextSize = 12, TextColor3 = C.Muted, Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, -60, 0, 18), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd })
                 end
                 local track = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(42, 24), BackgroundColor3 = C.ToggleOff, BorderSizePixel = 0, Parent = row }, { corner(12) })
-                local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = Color3.fromRGB(150, 150, 162), BorderSizePixel = 0, Parent = track }, { corner(8) })
+                local knob = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = C.KnobOff, BorderSizePixel = 0, Parent = track }, { corner(8) })
                 local hit = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", Parent = row })
                 local state = o.CurrentValue == true
                 local obj = {}
                 local function render(animate)
                     local tp = { BackgroundColor3 = state and C.ToggleOn or C.ToggleOff }
-                    local kp = { Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 4, 0.5, 0), BackgroundColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(150, 150, 162) }
+                    local kp = { Position = state and UDim2.new(1, -20, 0.5, 0) or UDim2.new(0, 4, 0.5, 0), BackgroundColor3 = state and Color3.new(1, 1, 1) or C.KnobOff }
                     if animate then tween(track, 0.15, tp); tween(knob, 0.15, kp)
                     else for k, v in pairs(tp) do track[k] = v end for k, v in pairs(kp) do knob[k] = v end end
                 end
@@ -425,7 +648,7 @@ local Airflow = (function()
                 local inc = o.Increment or 1
                 local dec = #((tostring(inc):match("%.(%d+)")) or "")
                 local suffix = (o.Suffix and o.Suffix ~= "") and (" " .. o.Suffix) or ""
-                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 38), Size = UDim2.new(1, 0, 0, 5), BackgroundColor3 = Color3.fromRGB(38, 38, 48), BorderSizePixel = 0, Parent = row }, { corner(2) })
+                local track = new("Frame", { Position = UDim2.new(0, 0, 0, 38), Size = UDim2.new(1, 0, 0, 5), BackgroundColor3 = C.SliderTrack, BorderSizePixel = 0, Parent = row }, { corner(2) })
                 local fill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = track }, {
                     corner(2),
                     new("UIGradient", { Color = ColorSequence.new(C.AccentDk, C.Accent) }),
@@ -589,7 +812,7 @@ local Airflow = (function()
                 text(row, { Text = o.Name or "Input", Size = UDim2.new(1, 0, 0, 22), TextXAlignment = Enum.TextXAlignment.Left })
                 local tb = new("TextBox", {
                     Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = C.Field, Text = tostring(o.CurrentValue or ""),
-                    PlaceholderText = o.Placeholder or "", PlaceholderColor3 = Color3.fromRGB(100, 100, 112), TextColor3 = C.Text,
+                    PlaceholderText = o.Placeholder or "", PlaceholderColor3 = C.Placeholder, TextColor3 = C.Text,
                     TextSize = 13, FontFace = font(), ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
                 }, { corner(7), stroke(C.Stroke), pad(12, 0, 12, 0) })
                 local obj = {}
@@ -612,9 +835,9 @@ local Airflow = (function()
                     TextColor3 = primary and C.BtnDark or C.Text, TextSize = 13, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = parent,
                 }, { corner(7) })
                 if not primary then stroke(C.Stroke).Parent = btn end
-                local base = btn.BackgroundColor3
-                btn.MouseEnter:Connect(function() tween(btn, 0.1, { BackgroundColor3 = primary and Color3.fromRGB(128, 186, 255) or Color3.fromRGB(32, 32, 40) }) end)
-                btn.MouseLeave:Connect(function() tween(btn, 0.1, { BackgroundColor3 = base }) end)
+                -- read colours at hover time so buttons follow theme changes
+                btn.MouseEnter:Connect(function() tween(btn, 0.1, { BackgroundColor3 = primary and C.AccentHover or C.BtnHover }) end)
+                btn.MouseLeave:Connect(function() tween(btn, 0.1, { BackgroundColor3 = primary and C.Accent or C.Field }) end)
                 btn.MouseButton1Click:Connect(function() if b.Callback then task.spawn(b.Callback) end end)
                 return btn
             end
@@ -723,7 +946,7 @@ local Airflow = (function()
             })
             local box = new("TextBox", {
                 Size = UDim2.new(1, -84, 1, 0), BackgroundColor3 = C.Field, Text = "", PlaceholderText = "Search features...", ZIndex = 6,
-                PlaceholderColor3 = Color3.fromRGB(100, 100, 112), TextColor3 = C.Text, TextSize = 13, FontFace = font(),
+                PlaceholderColor3 = C.Placeholder, TextColor3 = C.Text, TextSize = 13, FontFace = font(),
                 ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Left, Parent = bar,
             }, { corner(8), stroke(C.Stroke), pad(14, 0, 14, 0) })
             local goBtn = new("TextButton", {
@@ -825,8 +1048,86 @@ local Airflow = (function()
                 refresh()
                 if current[1] then jump(current[1]) end
             end)
-            goBtn.MouseEnter:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = Color3.fromRGB(128, 186, 255) }) end)
+            goBtn.MouseEnter:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = C.AccentHover }) end)
             goBtn.MouseLeave:Connect(function() tween(goBtn, 0.1, { BackgroundColor3 = C.Accent }) end)
+        end
+
+
+        -- ===== theme API + ready-made Theme tab =====
+        function Window:SetTheme(n) return Lib:SetTheme(n) end
+        function Window:SetAccent(c) return Lib:SetAccent(c) end
+        function Window:ResetTheme() return Lib:ResetTheme() end
+        function Window:GetTheme() return Lib:GetTheme() end
+
+        function Window:CreateThemeTab(tabName)
+            local Tab = Window:CreateTab({ Name = tabName or "Theme", Icon = "palette" })
+            local function describe()
+                local n, a = Lib:GetTheme()
+                return "Active theme: " .. n .. (a and ("  (accent " .. Lib.ToHex(a) .. ")") or "")
+            end
+
+            -- left column: presets + reset
+            Tab:CreateSection({ Name = "Themes", Column = "Left" })
+            local status
+            local accentBox
+            local dd = Tab:CreateDropdown({
+                Name = "Theme", Options = Lib:GetThemeNames(), CurrentValue = (Lib:GetTheme()),
+                Callback = function(v)
+                    if Lib:SetTheme(v) then
+                        if accentBox then accentBox:Set("") end
+                        if status then status:Set(describe()) end
+                        Window:Notify({ title = "Theme", content = "Applied " .. tostring(v), duration = 2 })
+                    end
+                end,
+            })
+            status = Tab:CreateLabel({ Name = describe() })
+            Tab:CreateButton({
+                Name = "Reset Theme",
+                Callback = function()
+                    Lib:ResetTheme()
+                    dd:Set("Default", true)
+                    if accentBox then accentBox:Set("") end
+                    status:Set(describe())
+                    Window:Notify({ title = "Theme", content = "Reset to the default theme", duration = 2 })
+                end,
+            })
+
+            -- right column: custom accent colour
+            Tab:CreateSection({ Name = "Custom Accent", Column = "Right" })
+            accentBox = Tab:CreateInput({
+                Name = "Accent color (hex)", Placeholder = "#66AAFF", CurrentValue = "",
+            })
+            local function applyAccent(val)
+                if Lib:SetAccent(val) then
+                    status:Set(describe())
+                    return true
+                end
+                Window:Notify({ title = "Theme", content = "Invalid hex color. Try something like #FF4466", duration = 3 })
+                return false
+            end
+            Tab:CreateButtonRow({
+                { Name = "Apply accent", Callback = function()
+                    local v = accentBox:Get()
+                    if (v:gsub("%s", "")) == "" then
+                        Window:Notify({ title = "Theme", content = "Type a hex color first (e.g. #FF4466)", duration = 3 })
+                        return
+                    end
+                    applyAccent(v)
+                end },
+                { Name = "Random", Style = "Secondary", Callback = function()
+                    local c = Color3.fromHSV(math.random(), 0.55 + math.random() * 0.4, 1)
+                    accentBox:Set(Lib.ToHex(c))
+                    applyAccent(c)
+                end },
+            })
+            Tab:CreateLabel({ Name = "Accent recolors buttons, sliders, toggles and highlights." })
+
+            -- live preview so people can see what a theme does without leaving the tab
+            Tab:CreateSection({ Name = "Preview", Column = "Left" })
+            Tab:CreateToggle({ Name = "Preview toggle", Desc = "Just for showing the theme", CurrentValue = true })
+            Tab:CreateSlider({ Name = "Preview slider", Range = { 0, 100 }, Increment = 1, CurrentValue = 60 })
+            Tab:CreateButton({ Name = "Preview button", Style = "Secondary" })
+            return Tab
         end
 
         return Window
@@ -1292,6 +1593,7 @@ if isArcade then
     local CombatTab = Window:CreateTab({ Name = "Combat", Icon = "swords" })
     local BallTab = Window:CreateTab({ Name = "Ball", Icon = "circle" })
     local HVHTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
+    pcall(function() Window:CreateThemeTab() end)
 
     CombatTab:CreateSection("Auto Green")
     CombatTab:CreateToggle({
@@ -1643,6 +1945,7 @@ elseif isBL then
     local CombatTab = Window:CreateTab({ Name = "Combat", Icon = "swords" })
     local BallTab = Window:CreateTab({ Name = "Ball", Icon = "circle" })
     local HVHTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
+    pcall(function() Window:CreateThemeTab() end)
 
     CombatTab:CreateSection("Auto Green")
     CombatTab:CreateToggle({
@@ -3527,6 +3830,7 @@ end)
     local VisualsTab = Window:CreateTab({ Name = "Visuals", Icon = "eye" })
     local PrivacyTab = Window:CreateTab({ Name = "Privacy", Icon = "user" })
     local UtilityTab = Window:CreateTab({ Name = "Utility", Icon = "list" })
+    pcall(function() Window:CreateThemeTab() end)
 
     CombatTab:CreateSection("Silent Aim")
     CombatTab:CreateToggle({
