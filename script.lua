@@ -474,16 +474,43 @@ local Airflow = (function()
             if gp then return end
             if toggleKey and i.KeyCode == toggleKey then toggleUI() end
         end)
-        if isMobile then
-            local b = new("TextButton", {
-                Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0, 14, 0.5, -20), BackgroundColor3 = C.Panel, Text = "UI",
-                TextColor3 = C.Accent, TextSize = 14, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = gui,
-            }, { corner(20), stroke(C.StrokeLt) })
-            if logo then
-                b.Text = ""
-                new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = logo, Parent = b })
-            end
-            b.MouseButton1Click:Connect(toggleUI)
+        local function hideUI() if not uiReady then return end closePopup(); root.Visible = false end
+
+        -- floating circle that reopens the menu (shown whenever the window is hidden)
+        local openBtn = new("TextButton", {
+            Size = UDim2.fromOffset(46, 46), Position = UDim2.new(0, 18, 0.5, -23), BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+            Text = "", AutoButtonColor = false, Visible = false, ZIndex = 60, ClipsDescendants = true, Parent = gui,
+        }, { corner(23), stroke(C.StrokeLt, 1.5) })
+        if logo then
+            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, ZIndex = 61, Parent = openBtn })
+        else
+            text(openBtn, { Text = "B", TextSize = 20, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Size = UDim2.fromScale(1, 1), ZIndex = 61 })
+        end
+        local function syncOpenBtn() openBtn.Visible = uiReady and not root.Visible end
+        root:GetPropertyChangedSignal("Visible"):Connect(syncOpenBtn)
+        syncOpenBtn()
+        do -- click opens, drag moves
+            local down, moved, startIn, startPos
+            openBtn.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                    down, moved, startIn, startPos = true, false, i.Position, openBtn.Position
+                end
+            end)
+            UIS.InputChanged:Connect(function(i)
+                if down and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                    local d = i.Position - startIn
+                    if moved or d.Magnitude > 6 then
+                        moved = true
+                        openBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+                    end
+                end
+            end)
+            UIS.InputEnded:Connect(function(i)
+                if down and (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) then
+                    down = false
+                    if not moved then toggleUI() end
+                end
+            end)
         end
 
         -- loading screen
@@ -1108,11 +1135,8 @@ local Airflow = (function()
         end
 
         -- minimize / close
-        minB.MouseButton1Click:Connect(function()
-            toggleUI()
-            Window:Notify({ title = "Minimized", content = "Press " .. (toggleKey and toggleKey.Name or "the UI button") .. " to open the menu again", duration = 3 })
-        end)
-        closeB.MouseButton1Click:Connect(function() gui:Destroy() end)
+        minB.MouseButton1Click:Connect(hideUI)
+        closeB.MouseButton1Click:Connect(hideUI)
 
 
         -- ===== theme API + ready-made Theme tab =====
