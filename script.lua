@@ -740,6 +740,16 @@ local Airflow = (function()
                 AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 41, Parent = results,
             }, { pad(6, 6, 6, 6), new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
+            -- block everything behind the results while they're open
+            results.Active = true
+            list.Active = true
+            local blocker = new("TextButton", {
+                Position = UDim2.fromOffset(0, 54), Size = UDim2.new(1, 0, 1, -54), BackgroundTransparency = 1, Text = "",
+                AutoButtonColor = false, Active = true, Visible = false, ZIndex = 30, Parent = root,
+            })
+            blocker.MouseButton1Click:Connect(function() results.Visible = false; box:ReleaseFocus() end)
+            results:GetPropertyChangedSignal("Visible"):Connect(function() blocker.Visible = results.Visible end)
+
             local current = {}
             local function jump(e)
                 if not e then return end
