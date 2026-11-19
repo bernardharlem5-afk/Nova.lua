@@ -1,6 +1,93 @@
 
 
-local Airflow = loadstring(game:HttpGet("https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau"))()
+-- ============================================================
+-- EXECUTOR COMPATIBILITY LAYER (Xeno and other executors)
+-- Fills in or safely stubs functions an executor may not have, so a missing
+-- one turns a single feature off instead of breaking the whole script.
+-- A report of what is missing is printed to the console and shown in a
+-- notification when the window opens.
+-- ============================================================
+local __compat = { missing = {}, executor = "unknown" }
+do
+    pcall(function()
+        if type(identifyexecutor) == "function" then
+            local name, ver = identifyexecutor()
+            __compat.executor = tostring(name) .. (ver and (" " .. tostring(ver)) or "")
+        elseif type(getexecutorname) == "function" then
+            __compat.executor = tostring(getexecutorname())
+        end
+    end)
+
+    local function miss(name) table.insert(__compat.missing, name) end
+    local function unsupported(name)
+        return function() error(name .. " is not supported by this executor", 2) end
+    end
+
+    if type(getgenv) ~= "function" then
+        miss("getgenv"); getgenv = function() return _G end
+    end
+    if type(newcclosure) ~= "function" then
+        miss("newcclosure"); newcclosure = function(f) return f end
+    end
+    if type(hookfunction) ~= "function" then
+        local alt = (type(hookfunc) == "function" and hookfunc)
+            or (type(replaceclosure) == "function" and replaceclosure)
+        if alt then
+            hookfunction = alt
+        else
+            miss("hookfunction (aimbot camera hook, goal effect)")
+            hookfunction = unsupported("hookfunction")
+        end
+    end
+    if type(getrawmetatable) ~= "function" then
+        if type(debug) == "table" and type(debug.getmetatable) == "function" then
+            getrawmetatable = debug.getmetatable
+        else
+            miss("getrawmetatable (aimbot camera hook)")
+            getrawmetatable = unsupported("getrawmetatable")
+        end
+    end
+    if type(getconnections) ~= "function" then
+        miss("getconnections (goal effect)"); getconnections = function() return {} end
+    end
+    if type(firetouchinterest) ~= "function" then
+        miss("firetouchinterest (magnets, reach, auto guard)")
+        firetouchinterest = function() end
+    end
+    if type(getactors) ~= "function" or type(run_on_actor) ~= "function" then
+        miss("getactors/run_on_actor (aimbot actor hook)")
+    end
+    if type(loadstring) ~= "function" then miss("loadstring") end
+end
+
+-- Download helper that tries every HTTP method an executor might offer.
+local function __fetch(url)
+    local attempts = {
+        function() return game:HttpGet(url) end,
+        function() return game:HttpGetAsync(url) end,
+        function()
+            local req = request or http_request or (syn and syn.request) or (http and http.request)
+            local res = req and req({ Url = url, Method = "GET" })
+            return res and res.Body
+        end,
+    }
+    for _, attempt in attempts do
+        local ok, body = pcall(attempt)
+        if ok and type(body) == "string" and #body > 0 then return body end
+    end
+end
+
+local __libSource = __fetch("https://raw.githubusercontent.com/PookiePepelsss/Airflow-UI/refs/heads/main/Source.luau")
+assert(__libSource, "Could not download the UI library (HttpGet/request is blocked or unavailable).")
+local __libChunk, __libErr = loadstring(__libSource)
+assert(__libChunk, "The UI library failed to compile: " .. tostring(__libErr))
+local Airflow = __libChunk()
+print("[Compat] Executor: " .. __compat.executor)
+if #__compat.missing > 0 then
+    print("[Compat] Missing, these features may not work:\n  - " .. table.concat(__compat.missing, "\n  - "))
+else
+    print("[Compat] All required executor functions found.")
+end
 Airflow:LoadFont({Name = "ValleySans"})
 
 Airflow.Themes.FatalBlue = {
@@ -451,6 +538,12 @@ if isArcade then
     end
 
     local Window = Airflow:CreateWindow({Name = "Fatal Labs", LoadingSubtitle = "Fatal Labs basketball suite", Theme = "FatalBlue", ToggleUIKeybind = "RightControl", ConfigurationSaving = {Enabled = true, FolderName = "FatalLabs", FileName = "FatalLabs"}})
+    pcall(function()
+        local note = (#__compat.missing > 0)
+            and ("Executor: " .. __compat.executor .. ". Missing: " .. table.concat(__compat.missing, ", "))
+            or ("Executor: " .. __compat.executor .. ". All required functions found.")
+        Window:Notify({ title = "Compatibility", content = note, duration = 8 })
+    end)
 
     local Notify = function(props) pcall(function() Window:Notify(props) end) end
 
@@ -802,6 +895,12 @@ elseif isBL then
     end
 
     local Window = Airflow:CreateWindow({Name = "Fatal Labs", LoadingSubtitle = "Fatal Labs basketball suite", Theme = "FatalBlue", ToggleUIKeybind = "RightControl", ConfigurationSaving = {Enabled = true, FolderName = "FatalLabs", FileName = "FatalLabs"}})
+    pcall(function()
+        local note = (#__compat.missing > 0)
+            and ("Executor: " .. __compat.executor .. ". Missing: " .. table.concat(__compat.missing, ", "))
+            or ("Executor: " .. __compat.executor .. ". All required functions found.")
+        Window:Notify({ title = "Compatibility", content = note, duration = 8 })
+    end)
 
     local Notify = function(props) pcall(function() Window:Notify(props) end) end
 
@@ -1043,6 +1142,7 @@ elseif isBL then
 else
     local TweenService = game:GetService("TweenService")
     local HttpService  = game:GetService("HttpService")
+    local DeviceEvent  = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("deviceEvent")
 
     local Settings = {
         Shooting = {
@@ -1057,9 +1157,10 @@ else
             GuardKeybind = Enum.KeyCode.K,
         },
         Ball = {
-            BallMags = false, BallMagRange = 15, MagnetKeybind = "M",
-            BallReach = false, BallReachRange = 10, ReachKeybind = "N",
+            BallMags = false, BallMagRange = 15, BallMagVisualizer = false, MagnetKeybind = "M",
+            BallReach = false, BallReachRange = 10, BallReachVisualizer = false, ReachKeybind = "N",
         },
+        MagV2 = { Enabled = false, BallName = "Ball", Reach = 20, Keybind = Enum.KeyCode.U },
         TPWalk = { Enabled = false, Speed = 0.01, Keybind = Enum.KeyCode.P },
         HVH = {
             HipHeight = { Enabled = false, Value = 0, Default = 0 },
@@ -1067,6 +1168,22 @@ else
             Speed = { Enabled = false, Mult = 1.35, Keybind = Enum.KeyCode.RightShift },
             InfiniteJump = { Enabled = false, Power = 1, Count = 2 },
         },
+        Misc = { AntiModerator = false, DeviceSpoofer = false, Device = "PC", MobilePanel = true },
+        Visuals = {
+            ShotIndicator = false, IndicatorColor = "Blue",
+            CustomName = false, CustomNameText = "",
+            CustomRecord = false, CustomRecordText = "",
+            CustomTitle = false, CustomTitleText = "",
+            HideOwnNameplate = false,
+        },
+        Goal = { Enabled = false, SelectedEffect = "LightRay", CurrentEffect = "LightRay" },
+        CourtSpoofer = { Enabled = false, SelectedCourt = "None", CurrentCourt = "None" },
+        AvatarSpoof = { Enabled = false, Type = "Korblox" },
+        BadgeSpoof = { Enabled = false, Selected = "Staff" },
+        BallChanger = { Enabled = false, SelectedBall = "ForceField", CurrentBall = "ForceField" },
+        TrailSpoofer = { Enabled = false, SelectedTrail = "None", CurrentTrail = "None" },
+        BallAura = { Enabled = false, SelectedAura = "None", CurrentAura = "None" },
+        BodyAura = { Enabled = false, Selected = "None" },
     }
     local s = Settings
     HVH.cfg = s.HVH
@@ -1075,9 +1192,16 @@ else
     local function Track(c) table.insert(Cleanup.conns, c); return c end
     local function OnCleanup(fn) table.insert(Cleanup.fns, fn) end
 
-    local setAural, setGuard, setMagnet, setReach, setTPWalk
+    local setAural, setGuard, setMagnet, setReach, setTPWalk, setMagV2
     local MobileRefresh = function() end
 
+    local IndicatorColors = {
+        Blue = Color3.fromRGB(60, 150, 255),
+        Purple = Color3.fromRGB(190, 165, 240),
+        Green = Color3.fromRGB(0, 255, 128),
+        Red = Color3.fromRGB(255, 60, 60),
+        Yellow = Color3.fromRGB(255, 220, 0),
+    }
 
     local function hasball(char) return char and char:FindFirstChild("Basketball") ~= nil end
 
@@ -1389,6 +1513,13 @@ else
         weld.Part0 = head
         weld.Part1 = magnetHitbox
         weld.Parent = magnetHitbox
+        local magnetBox = Instance.new("SelectionSphere")
+        magnetBox.Name = "FatalMagnetBox"
+        magnetBox.Adornee = magnetHitbox
+        magnetBox.Color3 = Color3.fromRGB(190, 165, 240)
+        magnetBox.Transparency = s.Ball.BallMagVisualizer and 0.2 or 1
+        magnetBox.SurfaceTransparency = 1
+        magnetBox.Parent = magnetHitbox
         magnetHitbox.Touched:Connect(function(part)
             if not s.Ball.BallMags or hasball(LocalPlayer.Character) then return end
             if part.Name == "Ball" or (part.Parent and part.Parent.Name == "Basketball") then
@@ -1422,7 +1553,11 @@ else
         end
     end
 
-    local reachConnection = nil
+    local reachVisualizer, reachConnection = nil, nil
+
+    local function removeReachVisualizer()
+        if reachVisualizer then reachVisualizer:Destroy(); reachVisualizer = nil end
+    end
 
     local function performReachSteal()
         if not s.Ball.BallReach then return end
@@ -1449,6 +1584,56 @@ else
         end
     end
 
+    local function updateReachVisualizer()
+        if not s.Ball.BallReachVisualizer then removeReachVisualizer(); return end
+        local closest, closestDist = nil, math.huge
+        local myChar = LocalPlayer.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if myRoot then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p == LocalPlayer then continue end
+                local c = p.Character
+                local b = c and c:FindFirstChild("Basketball")
+                local r = c and c:FindFirstChild("HumanoidRootPart")
+                if b and r then
+                    local d = (myRoot.Position - r.Position).Magnitude
+                    if d < closestDist then closestDist = d; closest = p end
+                end
+            end
+        end
+        local ballPart = nil
+        if closest and closest.Character then
+            local oppBall = closest.Character:FindFirstChild("Basketball")
+            if oppBall then ballPart = oppBall:FindFirstChild("Ball") end
+        end
+        if not ballPart then removeReachVisualizer(); return end
+        local range = s.Ball.BallReachRange or 10
+        if not reachVisualizer or not reachVisualizer.Parent then
+            reachVisualizer = Instance.new("Part")
+            reachVisualizer.Name = "ReachBallVisualizer"
+            reachVisualizer.Shape = Enum.PartType.Ball
+            reachVisualizer.Size = Vector3.new(range, range, range)
+            reachVisualizer.Transparency = 1
+            reachVisualizer.CanCollide = false
+            reachVisualizer.CanTouch = false
+            reachVisualizer.CanQuery = false
+            reachVisualizer.CastShadow = false
+            reachVisualizer.Massless = true
+            reachVisualizer.Anchored = true
+            reachVisualizer.Color = Color3.fromRGB(190, 165, 240)
+            reachVisualizer.Parent = workspace
+            local sphereBox = Instance.new("SelectionSphere")
+            sphereBox.Name = "FatalReachSphere"
+            sphereBox.Adornee = reachVisualizer
+            sphereBox.Transparency = 0.75
+            sphereBox.SurfaceTransparency = 1
+            sphereBox.Color3 = Color3.fromRGB(190, 165, 240)
+            sphereBox.Parent = reachVisualizer
+        end
+        reachVisualizer.Size = Vector3.new(range, range, range)
+        reachVisualizer.CFrame = ballPart.CFrame
+    end
+
     local function enableReach()
         local char = LocalPlayer.Character
         if not char then return end
@@ -1457,14 +1642,16 @@ else
         end
         if reachConnection then reachConnection:Disconnect(); reachConnection = nil end
         reachConnection = RunService.Heartbeat:Connect(function()
-            if not s.Ball.BallReach then return end
-            performReachSteal()
+            if not s.Ball.BallReach and not s.Ball.BallReachVisualizer then return end
+            if s.Ball.BallReach then performReachSteal() end
+            if s.Ball.BallReachVisualizer then updateReachVisualizer() else removeReachVisualizer() end
         end)
         Track(reachConnection)
     end
 
     local function disableReach()
         if reachConnection then reachConnection:Disconnect(); reachConnection = nil end
+        removeReachVisualizer()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("FatalReach") then
             LocalPlayer.Character.FatalReach:Destroy()
         end
@@ -1491,7 +1678,1211 @@ else
         if tpWalkConnection then tpWalkConnection:Disconnect(); tpWalkConnection = nil end
     end
 
+    local magV2Connection = nil
+
+    local function magV2Tick()
+        if not s.MagV2.Enabled then return end
+        local character, _, touchPart = getChar()
+        if not character or not touchPart then return end
+        local ballName = s.MagV2.BallName
+        local reach = tonumber(s.MagV2.Reach) or 20
+        for _, object in pairs(workspace:GetDescendants()) do
+            if object.Name == ballName and object:IsA("BasePart") then
+                if object:FindFirstChildWhichIsA("TouchTransmitter") or object:FindFirstChild("TouchInterest") then
+                    if (touchPart.Position - object.Position).Magnitude <= reach then
+                        firetouchinterest(touchPart, object, 0)
+                        task.wait()
+                        firetouchinterest(touchPart, object, 1)
+                    end
+                end
+            end
+        end
+    end
+
+    local function enableMagV2()
+        if magV2Connection then magV2Connection:Disconnect(); magV2Connection = nil end
+        magV2Connection = RunService.Heartbeat:Connect(function() pcall(magV2Tick) end)
+        Track(magV2Connection)
+    end
+
+    local function disableMagV2()
+        if magV2Connection then magV2Connection:Disconnect(); magV2Connection = nil end
+    end
+
+    local Effects = {}
+    local function loadEffects()
+        pcall(function()
+            local folder = ReplicatedStorage.ShopItems.Effect
+            for _, eff in folder:GetChildren() do
+                Effects[eff.Name:gsub("Effect_", "")] = eff
+            end
+        end)
+    end
+    loadEffects()
+
+    local goalEventHook = nil
+
+    local function applyGoalEffect()
+        if not Effects[s.Goal.CurrentEffect] then return end
+        pcall(function()
+            local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+            PlayerData.storedData["Equipping"]["Effect"] = Effects[s.Goal.CurrentEffect].Name
+            PlayerData.storedData["Inventory"][Effects[s.Goal.CurrentEffect].Name] = 1
+        end)
+        if goalEventHook then return end
+        pcall(function()
+            local connections = getconnections(ReplicatedStorage.Remotes.goalEvent.OnClientEvent)
+            if connections and connections[1] then
+                local old
+                old = hookfunction(connections[1].Function, function(Player, Court, Goal, XYZ, GoalEffect, Unknown)
+                    if Player == LocalPlayer and s.Goal.Enabled then
+                        GoalEffect = Effects[s.Goal.CurrentEffect].Value
+                    end
+                    return old(Player, Court, Goal, XYZ, GoalEffect, Unknown)
+                end)
+                goalEventHook = old
+            end
+        end)
+    end
+
+    local function resetGoalEffect()
+        pcall(function()
+            local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+            PlayerData.storedData["Equipping"]["Effect"] = Effects["LightRay"].Name
+            PlayerData.storedData["Inventory"][Effects["LightRay"].Name] = 1
+        end)
+    end
+
+    local function SpoofDevice()
+        if not s.Misc.DeviceSpoofer then return end
+        local device = s.Misc.Device
+        if device == "PC" then DeviceEvent:FireServer("Desktop")
+        elseif device == "Mobile" then DeviceEvent:FireServer("Mobile")
+        elseif device == "Gamepad" then DeviceEvent:FireServer("Gamepad") end
+    end
+
+    local Moderators = {
+        "izzran", "wistfulmikk", "Bibliogical", "aepione", "kyraizo",
+        "ar1sxm", "westline60s", "Iukejdjd", "Ninja215215"
+    }
+    local antiModTask = nil
     local Notify
+
+    local function startAntiMod()
+        if antiModTask then return end
+        antiModTask = task.spawn(function()
+            local detected = {}
+            while s.Misc.AntiModerator do
+                task.wait(1)
+                for _, moderator in next, Players:GetPlayers() do
+                    if table.find(Moderators, moderator.Name) and not detected[moderator.UserId] then
+                        detected[moderator.UserId] = true
+                        if Notify then
+                            Notify({ title = "Moderator Detected", content = moderator.Name .. " is in the server.", duration = 5 })
+                        end 
+                    end
+                end
+            end
+        end)
+    end
+
+    local function stopAntiMod()
+        s.Misc.AntiModerator = false
+        if antiModTask then task.cancel(antiModTask); antiModTask = nil end
+    end
+
+    local Balls, BallNames = {}, {}
+    local Trails, TrailNames = {}, {}
+    local Auras, AuraNames = {}, {}
+    local Courts, CourtNames = {}, {}
+    local OriginalReplicateBall, Replicator = nil, nil
+    local OriginalReplicateTrail = nil
+    local OriginalReplicateAura = nil
+    local OriginalReplicateCourt = nil
+
+    pcall(function()
+        Replicator = require(ReplicatedStorage.Util.Replicator)
+        OriginalReplicateBall = Replicator["ReplicateBall"]
+        OriginalReplicateTrail = Replicator["ReplicateTrail"]
+        OriginalReplicateAura = Replicator["ReplicateAura"]
+        OriginalReplicateCourt = Replicator["ReplicateCourt"]
+
+        for _, ballItem in ReplicatedStorage.ShopItems.Ball:GetChildren() do
+            local name = ballItem.Name:gsub("Ball_", "")
+            Balls[name] = ballItem.Name
+            table.insert(BallNames, name)
+        end
+        table.sort(BallNames)
+
+        local trailFolder = ReplicatedStorage.ShopItems:FindFirstChild("Trail")
+        if trailFolder then
+            for _, item in trailFolder:GetChildren() do
+                local name = item.Name:gsub("Trail_", "")
+                Trails[name] = item.Name
+                table.insert(TrailNames, name)
+            end
+            table.sort(TrailNames)
+        end
+
+        local auraFolder = ReplicatedStorage.ShopItems:FindFirstChild("Aura")
+        if auraFolder then
+            for _, item in auraFolder:GetChildren() do
+                local name = item.Name:gsub("Aura_", "")
+                Auras[name] = item.Name
+                table.insert(AuraNames, name)
+            end
+            table.sort(AuraNames)
+        end
+
+        -- Court skin list: try multiple known folder names
+        local function addCourtFolder(folder)
+            if not folder then return end
+            for _, item in folder:GetChildren() do
+                local name = item.Name:gsub("^CourtSkin_", ""):gsub("^Court_", ""):gsub("^Skin_", "")
+                if not Courts[name] then
+                    Courts[name] = item.Name
+                    table.insert(CourtNames, name)
+                end
+            end
+        end
+        local shop = ReplicatedStorage:FindFirstChild("ShopItems")
+        if shop then
+            addCourtFolder(shop:FindFirstChild("CourtSkin"))
+            addCourtFolder(shop:FindFirstChild("Courts"))
+            addCourtFolder(shop:FindFirstChild("Court"))
+        end
+        -- Fallback: scan any folder named Court* under ReplicatedStorage
+        if #CourtNames == 0 then
+            for _, inst in ReplicatedStorage:GetDescendants() do
+                if inst:IsA("Folder") and inst.Name:lower():find("court", 1, true) and inst.Parent then
+                    addCourtFolder(inst)
+                end
+            end
+        end
+        table.sort(CourtNames)
+        if #CourtNames > 0 and (s.CourtSpoofer.SelectedCourt == "None" or s.CourtSpoofer.CurrentCourt == "None") then
+            s.CourtSpoofer.SelectedCourt = CourtNames[1]
+            s.CourtSpoofer.CurrentCourt = CourtNames[1]
+        end
+    end)
+
+    local function ownerOfParent(parent)
+        local node = parent
+        for _ = 1, 6 do
+            if not node then break end
+            if node:IsA("Model") then
+                local plr = Players:GetPlayerFromCharacter(node)
+                if plr then return plr end
+            end
+            node = node.Parent
+        end
+        return nil
+    end
+
+    local function applyBallChanger()
+        if not Replicator or not OriginalReplicateBall then return end
+        Replicator["ReplicateBall"] = function(Parent, Name)
+            if ownerOfParent(Parent) == LocalPlayer then
+                local spoofed = Balls[s.BallChanger.CurrentBall]
+                if spoofed then Name = spoofed end
+            end
+            return OriginalReplicateBall(Parent, Name)
+        end
+    end
+
+    local function resetBallChanger()
+        if not Replicator or not OriginalReplicateBall then return end
+        Replicator["ReplicateBall"] = OriginalReplicateBall
+    end
+
+    local function applyTrailSpoofer()
+        if not Replicator or not OriginalReplicateTrail then return end
+        Replicator["ReplicateTrail"] = function(Parent, Name)
+            if ownerOfParent(Parent) == LocalPlayer then
+                local spoofed = Trails[s.TrailSpoofer.CurrentTrail]
+                if spoofed then Name = spoofed end
+            end
+            return OriginalReplicateTrail(Parent, Name)
+        end
+    end
+
+    local function resetTrailSpoofer()
+        if not Replicator or not OriginalReplicateTrail then return end
+        Replicator["ReplicateTrail"] = OriginalReplicateTrail
+    end
+
+    -- One permanent hook on ReplicateAura shared by the ball aura spoofer and the
+    -- body aura changer (the game only has this single aura function). Body aura
+    -- wins when both are on.
+    local BodyAuraItems = {}
+    local auraDispatcher = nil
+
+    local function ensureAuraHook()
+        if auraDispatcher or not Replicator or not OriginalReplicateAura then return end
+        auraDispatcher = function(Parent, Name)
+            if ownerOfParent(Parent) == LocalPlayer then
+                if s.BodyAura.Enabled and BodyAuraItems[s.BodyAura.Selected] then
+                    Name = BodyAuraItems[s.BodyAura.Selected]
+                elseif s.BallAura.Enabled and Auras[s.BallAura.CurrentAura] then
+                    Name = Auras[s.BallAura.CurrentAura]
+                end
+            end
+            return OriginalReplicateAura(Parent, Name)
+        end
+        Replicator["ReplicateAura"] = auraDispatcher
+    end
+
+    local function releaseAuraHook(force)
+        if not force and (s.BallAura.Enabled or s.BodyAura.Enabled) then return end
+        if auraDispatcher and Replicator and Replicator["ReplicateAura"] == auraDispatcher then
+            Replicator["ReplicateAura"] = OriginalReplicateAura
+        end
+        auraDispatcher = nil
+    end
+
+    local function applyBallAura()
+        ensureAuraHook()
+    end
+
+    local function resetBallAura()
+        releaseAuraHook(false)
+    end
+
+    -- ============================================================
+    -- BODY AURA CHANGER (uses the game's own ShopItems aura assets)
+    -- ============================================================
+    local BodyAura = { Names = {} }
+    do
+        local shop = ReplicatedStorage:FindFirstChild("ShopItems")
+        local items = BodyAuraItems
+        local savedEquip = {}
+        -- Slots in PlayerData.Equipping that hold an aura. Add "Takeover" here if
+        -- you also want the takeover aura changed.
+        local SLOTS = { "Aura" }
+
+        -- The game keeps ball trails in the same folder as body auras. Anything
+        -- that looks like a ball trail is left out of the list. If one still
+        -- slips through, add its exact name here (without the "Aura_" prefix).
+        local NOT_BODY_AURAS = {
+            -- ["SomeBallTrail"] = true,
+        }
+
+        local function looksLikeBallTrail(item, name)
+            local lowered = item.Name:lower()
+            if lowered:find("trail", 1, true) or lowered:find("ball", 1, true) then
+                return true
+            end
+            if NOT_BODY_AURAS[name] then return true end
+            for attrName, attrValue in item:GetAttributes() do
+                if typeof(attrValue) == "string" then
+                    local v = (attrName .. " " .. attrValue):lower()
+                    if v:find("trail", 1, true) or v:find("ball", 1, true) then
+                        return true
+                    end
+                end
+            end
+            -- A pure Trail effect (no particles, no meshes) is a ball trail.
+            local hasTrail, hasBody = false, false
+            for _, d in item:GetDescendants() do
+                if d:IsA("Trail") then
+                    hasTrail = true
+                elseif d:IsA("ParticleEmitter") or d:IsA("MeshPart")
+                    or d:IsA("SpecialMesh") or d:IsA("Model") then
+                    hasBody = true
+                end
+            end
+            return hasTrail and not hasBody
+        end
+
+        pcall(function()
+            local folder = shop and shop:FindFirstChild("Aura")
+            if folder then
+                local skipped = {}
+                for _, item in folder:GetChildren() do
+                    local name = item.Name:gsub("^Aura_", "")
+                    if looksLikeBallTrail(item, name) then
+                        table.insert(skipped, name)
+                    else
+                        items[name] = item.Name
+                        table.insert(BodyAura.Names, name)
+                    end
+                end
+                table.sort(BodyAura.Names)
+                if #skipped > 0 then
+                    table.sort(skipped)
+                    print("[BodyAura] left out (look like ball trails): " .. table.concat(skipped, ", "))
+                end
+            end
+        end)
+        if #BodyAura.Names == 0 then BodyAura.Names = { "None" } end
+
+        local function setEquipped(on)
+            pcall(function()
+                local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+                local data = PlayerData.storedData
+                local eq = data and data["Equipping"]
+                if not eq then return end
+                local target = items[s.BodyAura.Selected]
+                for _, slot in SLOTS do
+                    if on then
+                        if not target then return end
+                        if savedEquip[slot] == nil then savedEquip[slot] = eq[slot] or false end
+                        eq[slot] = target
+                    elseif savedEquip[slot] ~= nil then
+                        eq[slot] = savedEquip[slot] or nil
+                        savedEquip[slot] = nil
+                    end
+                end
+                if on and target and data["Inventory"] then
+                    data["Inventory"][target] = 1
+                end
+            end)
+        end
+
+        -- Build the aura on the live character right now. The parent the game
+        -- expects is unknown, so try the character, then HumanoidRootPart if
+        -- nothing new appeared.
+        local function replicateNow()
+            local target = items[s.BodyAura.Selected]
+            local character = LocalPlayer.Character
+            if not target or not character or type(OriginalReplicateAura) ~= "function" then return end
+            task.spawn(function()
+                local before = #character:GetDescendants()
+                pcall(OriginalReplicateAura, character, target)
+                task.wait(0.4)
+                if #character:GetDescendants() == before then
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    if hrp then pcall(OriginalReplicateAura, hrp, target) end
+                end
+            end)
+        end
+
+        -- Direct method: copy the aura asset from ShopItems.Aura, make every piece
+        -- of it invisible and non-colliding, and weld it to the HumanoidRootPart so
+        -- it sits inside the body and follows every movement.
+        local cloned = {}
+        local hideConns = {}
+        local usedClone = false
+
+        local HIDE_BY_ENABLED = {
+            "ParticleEmitter", "Beam", "Trail", "Fire", "Smoke", "Sparkles",
+            "Highlight", "BillboardGui", "SurfaceGui",
+        }
+
+        -- Makes one instance unseeable and non-physical.
+        local function hideInstance(d)
+            pcall(function()
+                if d:IsA("BasePart") then
+                    d.Transparency = 1
+                    d.CastShadow = false
+                    d.CanCollide = false
+                    d.CanTouch = false
+                    d.CanQuery = false
+                    d.Massless = true
+                    pcall(function() d.LocalTransparencyModifier = 1 end)
+                elseif d:IsA("Decal") or d:IsA("Texture") then
+                    d.Transparency = 1
+                elseif d:IsA("Light") then
+                    d.Enabled = false
+                elseif d:IsA("GuiBase3d") then
+                    d.Visible = false
+                else
+                    for _, cls in HIDE_BY_ENABLED do
+                        if d:IsA(cls) then d.Enabled = false; break end
+                    end
+                end
+            end)
+        end
+
+        local function hideTree(root)
+            hideInstance(root)
+            for _, d in root:GetDescendants() do hideInstance(d) end
+        end
+
+        local function clearCloned()
+            for _, c in hideConns do pcall(function() c:Disconnect() end) end
+            table.clear(hideConns)
+            for _, inst in cloned do pcall(function() inst:Destroy() end) end
+            table.clear(cloned)
+        end
+
+        -- true: scale the aura so it is exactly as tall as your character
+        -- (feet to head). false: keep the aura at its authored size.
+        local MATCH_HEIGHT = true
+
+        local BODY_PART_NAMES = {
+            Head = true, Torso = true, UpperTorso = true, LowerTorso = true,
+            ["Left Arm"] = true, ["Right Arm"] = true,
+            ["Left Leg"] = true, ["Right Leg"] = true,
+            LeftUpperArm = true, LeftLowerArm = true, LeftHand = true,
+            RightUpperArm = true, RightLowerArm = true, RightHand = true,
+            LeftUpperLeg = true, LeftLowerLeg = true, LeftFoot = true,
+            RightUpperLeg = true, RightLowerLeg = true, RightFoot = true,
+        }
+
+        -- Only things that would affect YOU get removed. The aura's own joints,
+        -- animators, constraints and rigs stay so every aura keeps its own movement.
+        local function sanitize(root)
+            local doomed = {}
+            for _, d in root:GetDescendants() do
+                if d:IsA("ForceField") then
+                    table.insert(doomed, d)
+                elseif d:IsA("Humanoid") then
+                    -- Keep it (animations can run through it) but make it inert.
+                    pcall(function()
+                        d.EvaluateStateMachine = false
+                        d.PlatformStand = true
+                        d.WalkSpeed = 0
+                        d.JumpPower = 0
+                        d.BreakJointsOnDeath = false
+                        d.RequiresNeck = false
+                        d.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+                        d.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+                    end)
+                end
+            end
+            for _, d in doomed do pcall(function() d:Destroy() end) end
+        end
+
+        -- World-space bounding box of a list of parts (respects rotation).
+        local function worldBounds(parts)
+            local lo = Vector3.new(math.huge, math.huge, math.huge)
+            local hi = Vector3.new(-math.huge, -math.huge, -math.huge)
+            for _, p in parts do
+                local cf, sz = p.CFrame, p.Size
+                local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+                local half = Vector3.new(
+                    (math.abs(r.X) * sz.X + math.abs(u.X) * sz.Y + math.abs(l.X) * sz.Z) / 2,
+                    (math.abs(r.Y) * sz.X + math.abs(u.Y) * sz.Y + math.abs(l.Y) * sz.Z) / 2,
+                    (math.abs(r.Z) * sz.X + math.abs(u.Z) * sz.Y + math.abs(l.Z) * sz.Z) / 2
+                )
+                lo = lo:Min(cf.Position - half)
+                hi = hi:Max(cf.Position + half)
+            end
+            return lo, hi
+        end
+
+        local function cloneOntoBody()
+            local character = LocalPlayer.Character
+            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+            local shopNow = shop or ReplicatedStorage:FindFirstChild("ShopItems")
+            local folder = shopNow and shopNow:FindFirstChild("Aura")
+            local itemName = items[s.BodyAura.Selected]
+            local item = folder and itemName and folder:FindFirstChild(itemName)
+            if not hrp then return false, "no HumanoidRootPart yet" end
+            if not item then return false, "aura asset not found in ShopItems.Aura" end
+            clearCloned()
+
+            local weldCount = 0
+            local ok, err = pcall(function()
+                local copy = item:Clone()
+                -- Never run scripts copied out of the shop asset.
+                for _, d in copy:GetDescendants() do
+                    if d:IsA("LuaSourceContainer") then d:Destroy() end
+                end
+                -- No humanoids, body movers, constraints or joints from the asset.
+                sanitize(copy)
+
+                -- Put everything in one holder so it moves/scales as one piece.
+                local holder = Instance.new("Model")
+                holder.Name = "BodyAuraHolder"
+                if copy:IsA("Folder") or copy:IsA("Configuration") then
+                    for _, c in copy:GetChildren() do c.Parent = holder end
+                    copy:Destroy()
+                else
+                    copy.Parent = holder
+                end
+
+                -- Invisible, no collision, no touch, unanchored, massless.
+                hideTree(holder)
+
+                local cloneParts = {}
+                for _, d in holder:GetDescendants() do
+                    if d:IsA("BasePart") then cloneParts[#cloneParts + 1] = d end
+                end
+
+                if #cloneParts > 0 then
+                    -- Start on the character, facing the same way, standing upright.
+                    local look = hrp.CFrame.LookVector
+                    local flat = Vector3.new(look.X, 0, look.Z)
+                    if flat.Magnitude < 1e-3 then flat = Vector3.new(0, 0, -1) end
+                    holder:PivotTo(CFrame.lookAt(hrp.Position, hrp.Position + flat))
+
+                    -- Your character's feet and height, from the body parts only.
+                    local charParts = {}
+                    for _, d in character:GetChildren() do
+                        if d:IsA("BasePart") and BODY_PART_NAMES[d.Name] then
+                            charParts[#charParts + 1] = d
+                        end
+                    end
+                    local feetY, charH
+                    if #charParts > 0 then
+                        local clo, chi = worldBounds(charParts)
+                        feetY, charH = clo.Y, chi.Y - clo.Y
+                    else
+                        feetY, charH = hrp.Position.Y - 3, 5
+                    end
+
+                    -- Same height as your character.
+                    local lo, hi = worldBounds(cloneParts)
+                    local cloneH = hi.Y - lo.Y
+                    if MATCH_HEIGHT and cloneH > 0.05 and charH > 0.05 then
+                        pcall(function()
+                            holder:ScaleTo(math.clamp(charH / cloneH, 0.05, 20))
+                        end)
+                        lo, hi = worldBounds(cloneParts)
+                    end
+
+                    -- Feet to feet, centered on your body.
+                    holder:PivotTo(holder:GetPivot() + Vector3.new(
+                        hrp.Position.X - (lo.X + hi.X) / 2,
+                        feetY - lo.Y,
+                        hrp.Position.Z - (lo.Z + hi.Z) / 2
+                    ))
+                end
+
+                -- Everything with geometry goes into one folder on your character;
+                -- loose effects (attachments, emitters) go on the root.
+                local clones = Instance.new("Folder")
+                clones.Name = "BodyAuraClones"
+                clones.Parent = character
+                table.insert(cloned, clones)
+                -- Anything the clone spawns later gets hidden too.
+                table.insert(hideConns, clones.DescendantAdded:Connect(hideInstance))
+
+                for _, piece in holder:GetChildren() do
+                    local hasPart = piece:IsA("BasePart") or piece:FindFirstChildWhichIsA("BasePart", true)
+                    if hasPart then
+                        piece.Parent = clones
+                    else
+                        piece.Parent = hrp
+                        table.insert(cloned, piece)
+                    end
+                end
+
+                -- The clone is NOT welded to your character, so nothing inside it can
+                -- push, hold or freeze you. Each separate piece of the aura (an
+                -- assembly) is anchored and moved onto your body every frame, so
+                -- the aura's own joints, animations and constraints keep running.
+                local roots, seen = {}, {}
+                for _, d in clones:GetDescendants() do
+                    if d:IsA("BasePart") then
+                        local r = d:GetRootPart() or d
+                        if not seen[r] then
+                            seen[r] = true
+                            roots[#roots + 1] = r
+                        end
+                    end
+                end
+                local offsets = {}
+                for i, r in roots do
+                    offsets[i] = hrp.CFrame:ToObjectSpace(r.CFrame)
+                    r.Anchored = true
+                end
+                weldCount = #roots
+
+                -- Ghost mode. A clone part that is even slightly solid becomes a
+                -- floor under your feet and rides up with you, which launches you
+                -- into the sky when you jump. So every part is forced to be
+                -- non-collidable, non-queryable and untouchable, moved into a
+                -- collision group that collides with nothing, and re-checked
+                -- regularly because the game's own character scripts can flip
+                -- these settings back on anything inside your character.
+                local ghostGroup
+                pcall(function()
+                    local PhysicsService = game:GetService("PhysicsService")
+                    pcall(function() PhysicsService:RegisterCollisionGroup("BodyAuraGhost") end)
+                    for _, g in PhysicsService:GetRegisteredCollisionGroups() do
+                        pcall(function()
+                            PhysicsService:CollisionGroupSetCollidable("BodyAuraGhost", g.name, false)
+                        end)
+                    end
+                    ghostGroup = "BodyAuraGhost"
+                end)
+
+                local function ghost(p)
+                    pcall(function()
+                        if p.CanCollide then p.CanCollide = false end
+                        if p.CanQuery then p.CanQuery = false end
+                        if p.CanTouch then p.CanTouch = false end
+                    end)
+                    if ghostGroup and p.CollisionGroup ~= ghostGroup then
+                        pcall(function() p.CollisionGroup = ghostGroup end)
+                    end
+                end
+                local function ghostAll()
+                    for _, d in clones:GetDescendants() do
+                        if d:IsA("BasePart") then ghost(d) end
+                    end
+                end
+                ghostAll()
+
+                local sinceGhost = 0
+                table.insert(hideConns, RunService.Heartbeat:Connect(function(dt)
+                    if not hrp.Parent then return end
+                    local base = hrp.CFrame
+                    for i, r in roots do
+                        if r.Parent then r.CFrame = base * offsets[i] end
+                    end
+                    sinceGhost += dt
+                    if sinceGhost >= 0.2 then
+                        sinceGhost = 0
+                        ghostAll()
+                    end
+                end))
+                table.insert(hideConns, clones.DescendantAdded:Connect(function(d)
+                    if d:IsA("BasePart") then ghost(d) end
+                end))
+
+                holder:Destroy()
+            end)
+            if not ok then warn("[BodyAura] clone failed: " .. tostring(err)) end
+            return ok, err, weldCount
+        end
+
+        local charConn
+        local function watchRespawn(alsoEquip)
+            if charConn then charConn:Disconnect() end
+            charConn = LocalPlayer.CharacterAdded:Connect(function()
+                if not s.BodyAura.Enabled then return end
+                task.wait(0.5)
+                if alsoEquip then setEquipped(true) end
+                if usedClone then
+                    task.wait(1)
+                    if s.BodyAura.Enabled then cloneOntoBody() end
+                end
+            end)
+        end
+
+        function BodyAura.apply()
+            if not items[s.BodyAura.Selected] then
+                Notify({ title = "Body Aura", content = "Pick an aura first.", duration = 3 })
+                return
+            end
+            if not Replicator or not OriginalReplicateAura then
+                Notify({ title = "Body Aura", content = "Replicator.ReplicateAura not found.", duration = 4 })
+                return
+            end
+            s.BodyAura.Enabled = true
+            ensureAuraHook()
+            setEquipped(true)
+            local c0 = LocalPlayer.Character
+            local before = c0 and #c0:GetDescendants() or 0
+            replicateNow()
+            -- Always put the invisible clone on the body too, not only as a fallback.
+            usedClone = true
+            local okClone, errClone, welded = cloneOntoBody()
+            watchRespawn(true)
+            Notify({
+                title = "Body Aura",
+                content = okClone
+                    and ("Applied: " .. s.BodyAura.Selected .. " (" .. tostring(welded) .. " parts on your body)")
+                    or ("Applied, but the body clone failed: " .. tostring(errClone)),
+                duration = 4,
+            })
+        end
+
+        function BodyAura.refresh()
+            if s.BodyAura.Enabled then BodyAura.apply() end
+        end
+
+        function BodyAura.respawn()
+            local _, hum = getChar()
+            if hum then hum.Health = 0 end
+        end
+
+        function BodyAura.reset()
+            s.BodyAura.Enabled = false
+            if charConn then charConn:Disconnect(); charConn = nil end
+            setEquipped(false)
+            clearCloned()
+            usedClone = false
+            releaseAuraHook(false)
+        end
+
+        function BodyAura.force()
+            if not items[s.BodyAura.Selected] then
+                Notify({ title = "Body Aura", content = "Pick an aura first.", duration = 3 })
+                return
+            end
+            s.BodyAura.Enabled = true
+            usedClone = true
+            local ok, err, welded = cloneOntoBody()
+            watchRespawn(false)
+            local msg
+            if ok then
+                msg = "On your body: " .. s.BodyAura.Selected .. " (" .. tostring(welded) .. " pieces following, feet aligned, invisible)"
+            else
+                msg = "Failed: " .. tostring(err)
+            end
+            Notify({ title = "Body Aura", content = msg, duration = 6 })
+        end
+
+        -- Finds where the game keeps aura assets and lists the effect pieces
+        -- currently sitting on your character. Output goes to the console (F9).
+        function BodyAura.scan()
+            local out, n, cap = { "[BodyAura] scan: instances named *aura*" }, 0, 80
+            local function add(line)
+                if n < cap then
+                    n += 1
+                    table.insert(out, line)
+                elseif n == cap then
+                    n += 1
+                    table.insert(out, "  ...truncated")
+                end
+            end
+            local roots = {
+                ReplicatedStorage,
+                game:GetService("ReplicatedFirst"),
+                game:GetService("Lighting"),
+                workspace,
+            }
+            for _, root in roots do
+                pcall(function()
+                    for _, d in root:GetDescendants() do
+                        if d.Name:lower():find("aura", 1, true) then
+                            add("  " .. d.ClassName .. "  " .. d:GetFullName())
+                        end
+                    end
+                end)
+            end
+            local ch = LocalPlayer.Character
+            if ch then
+                table.insert(out, "[BodyAura] scan: effect pieces on your character")
+                local m = 0
+                for _, d in ch:GetDescendants() do
+                    if d:IsA("MeshPart") or d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then
+                        m += 1
+                        if m <= 60 then
+                            table.insert(out, "  " .. d.ClassName .. "  " .. d:GetFullName())
+                        end
+                    end
+                end
+                if m > 60 then table.insert(out, "  ...truncated (" .. m .. " total)") end
+            end
+            print(table.concat(out, "\n"))
+            Notify({ title = "Body Aura", content = "Scan printed to the console (F9).", duration = 3 })
+        end
+
+        function BodyAura.debug()
+            local out = { "[BodyAura] selected=" .. tostring(s.BodyAura.Selected)
+                .. " target=" .. tostring(items[s.BodyAura.Selected])
+                .. " hooked=" .. tostring(auraDispatcher ~= nil) }
+            pcall(function()
+                local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+                for _, slot in SLOTS do
+                    table.insert(out, "Equipping." .. slot .. " = " .. tostring(PlayerData.storedData["Equipping"][slot]))
+                end
+            end)
+            pcall(function()
+                local folder = shop and shop:FindFirstChild("Aura")
+                local name = items[s.BodyAura.Selected]
+                local item = folder and name and folder:FindFirstChild(name)
+                if not item then
+                    table.insert(out, "Selected aura asset NOT FOUND in ShopItems.Aura")
+                    return
+                end
+                table.insert(out, "Asset: " .. item:GetFullName() .. " [" .. item.ClassName .. "]")
+                for _, d in item:GetDescendants() do
+                    table.insert(out, "  " .. d.ClassName .. " " .. d:GetFullName():gsub("^.-" .. item.Name, item.Name))
+                end
+            end)
+            local ch = LocalPlayer.Character
+            table.insert(out, "Character=" .. tostring(ch) .. " HRP=" .. tostring(ch and ch:FindFirstChild("HumanoidRootPart")))
+            print(table.concat(out, "\n"))
+            Notify({ title = "Body Aura", content = "Printed to the console (F9).", duration = 3 })
+        end
+    end
+
+    -- ============================================================
+    -- KORBLOX / HEADLESS (local-only look). The character is re-checked every
+    -- fraction of a second, because Hoopz re-applies the avatar after spawn and
+    -- would otherwise undo a one-time change.
+    -- ============================================================
+    local AvatarSpoof = { Types = { "Korblox", "Headless" } }
+    do
+        local saved, charConn, hbConn = {}, nil, nil
+
+        local function remember(inst, props)
+            saved[inst] = saved[inst] or {}
+            for _, p in props do
+                if saved[inst][p] == nil then saved[inst][p] = inst[p] end
+            end
+        end
+
+        local function restore()
+            for inst, props in saved do
+                pcall(function()
+                    for p, v in props do inst[p] = v end
+                end)
+            end
+            table.clear(saved)
+        end
+
+        local function setProp(inst, prop, value)
+            if inst[prop] ~= value then inst[prop] = value end
+        end
+
+        local LEG_PARTS = { "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg" }
+
+        local function enforce()
+            local char = LocalPlayer.Character
+            if not char then return end
+            if s.AvatarSpoof.Type == "Headless" then
+                local head = char:FindFirstChild("Head")
+                if head and head:IsA("BasePart") then
+                    remember(head, { "Transparency" })
+                    setProp(head, "Transparency", 1)
+                    pcall(function() head.LocalTransparencyModifier = 1 end)
+                    for _, d in head:GetDescendants() do
+                        if d:IsA("Decal") or d:IsA("Texture") then
+                            remember(d, { "Transparency" })
+                            setProp(d, "Transparency", 1)
+                        end
+                    end
+                end
+            else
+                for _, n in LEG_PARTS do
+                    local part = char:FindFirstChild(n)
+                    if part and part:IsA("BasePart") then
+                        remember(part, { "Color", "Material", "Transparency", "Reflectance" })
+                        setProp(part, "Transparency", 0)
+                        setProp(part, "Color", Color3.fromRGB(70, 75, 90))
+                        setProp(part, "Material", Enum.Material.Metal)
+                        setProp(part, "Reflectance", 0.15)
+                        for _, d in part:GetChildren() do
+                            -- skin/clothing textures would cover the metal look
+                            if d:IsA("Decal") or d:IsA("Texture") then
+                                remember(d, { "Transparency" })
+                                setProp(d, "Transparency", 1)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        local function startLoop()
+            if hbConn then hbConn:Disconnect() end
+            local last = 0
+            hbConn = RunService.Heartbeat:Connect(function()
+                if os.clock() - last < 0.15 then return end
+                last = os.clock()
+                pcall(enforce)
+            end)
+        end
+
+        function AvatarSpoof.apply()
+            restore()
+            s.AvatarSpoof.Enabled = true
+            pcall(enforce)
+            startLoop()
+            if charConn then charConn:Disconnect() end
+            charConn = LocalPlayer.CharacterAdded:Connect(function()
+                table.clear(saved) -- old character is gone
+            end)
+            Notify({ title = "Avatar Spoofer", content = "Applied: " .. s.AvatarSpoof.Type, duration = 3 })
+        end
+
+        function AvatarSpoof.reset()
+            s.AvatarSpoof.Enabled = false
+            if hbConn then hbConn:Disconnect(); hbConn = nil end
+            if charConn then charConn:Disconnect(); charConn = nil end
+            restore()
+        end
+    end
+
+    -- ============================================================
+    -- BADGE SPOOFER. Hoopz draws a character's badge in a BillboardGui named
+    -- "CreatorTag" inside HumanoidRootPart (next to NameTag and TeamSpot). This
+    -- finds it on you, or copies one from another player, and changes its text
+    -- and colour to the badge you pick. If the game has no such tag in the
+    -- server, it falls back to a plain overhead tag. Local only.
+    -- ============================================================
+    local BadgeSpoof = { Names = { "Staff", "Tester", "Twitch", "Youtuber", "Booster", "VIP" } }
+    do
+        local STYLE = {
+            Staff    = { text = "STAFF",    color = Color3.fromRGB(255, 70, 70)   },
+            Tester   = { text = "TESTER",   color = Color3.fromRGB(80, 200, 120)  },
+            Twitch   = { text = "TWITCH",   color = Color3.fromRGB(145, 70, 255)  },
+            Youtuber = { text = "YOUTUBER", color = Color3.fromRGB(255, 40, 40)   },
+            Booster  = { text = "BOOSTER",  color = Color3.fromRGB(255, 115, 250) },
+            VIP      = { text = "VIP",      color = Color3.fromRGB(255, 200, 40)  },
+        }
+        local TAG_NAME = "CreatorTag"
+        local cloned, fallback, hbConn, charConn = nil, nil, nil, nil
+        local original = {} -- [instance] = { prop = value } for the game's own tag
+
+        local function ownRoot()
+            local c = LocalPlayer.Character
+            return c and c:FindFirstChild("HumanoidRootPart")
+        end
+
+        local function findOtherTag()
+            for _, plr in Players:GetPlayers() do
+                if plr ~= LocalPlayer then
+                    local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                    local tag = root and root:FindFirstChild(TAG_NAME)
+                    if tag and tag:IsA("BillboardGui") then return tag end
+                end
+            end
+        end
+
+        local function remember(inst, prop)
+            original[inst] = original[inst] or {}
+            if original[inst][prop] == nil then original[inst][prop] = inst[prop] end
+        end
+
+        local function styleTag(tag, st, isOwnGameTag)
+            if isOwnGameTag then remember(tag, "Enabled") end
+            if not tag.Enabled then tag.Enabled = true end
+            local firstText = true
+            for _, d in tag:GetDescendants() do
+                if d:IsA("TextLabel") then
+                    if firstText then
+                        firstText = false
+                        if isOwnGameTag then remember(d, "Text"); remember(d, "TextColor3") end
+                        local orig = (original[d] and original[d].Text) or d.Text
+                        local want = (orig:match("^<stroke>") and ("<stroke>" .. st.text .. "</stroke>")) or st.text
+                        if d.Text ~= want then d.Text = want end
+                        if d.TextColor3 ~= st.color then d.TextColor3 = st.color end
+                    end
+                elseif d:IsA("ImageLabel") then
+                    if isOwnGameTag then remember(d, "ImageColor3") end
+                    if d.ImageColor3 ~= st.color then d.ImageColor3 = st.color end
+                elseif d:IsA("UIStroke") then
+                    if isOwnGameTag then remember(d, "Color") end
+                    if d.Color ~= st.color then d.Color = st.color end
+                end
+            end
+        end
+
+        local function buildFallback(st)
+            local head = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+            if not head then return end
+            if fallback then pcall(function() fallback:Destroy() end) end
+            local bb = Instance.new("BillboardGui")
+            bb.Name = "\0"
+            bb.Size = UDim2.fromOffset(110, 26)
+            bb.StudsOffsetWorldSpace = Vector3.new(0, 3.1, 0)
+            bb.Adornee = head
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.fromScale(1, 1)
+            frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+            frame.BackgroundTransparency = 0.25
+            frame.BorderSizePixel = 0
+            frame.Parent = bb
+            Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+            local stroke = Instance.new("UIStroke", frame)
+            stroke.Color = st.color
+            stroke.Thickness = 1.5
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.fromScale(1, 1)
+            label.BackgroundTransparency = 1
+            label.Text = st.text
+            label.TextColor3 = st.color
+            label.TextScaled = true
+            label.Font = Enum.Font.GothamBold
+            label.Parent = frame
+            bb.Parent = head
+            fallback = bb
+        end
+
+        -- Returns "game" when the game's own tag is used, "fallback" otherwise.
+        local function build()
+            local st = STYLE[s.BadgeSpoof.Selected]
+            local root = ownRoot()
+            if not st or not root then return nil end
+
+            local tag = root:FindFirstChild(TAG_NAME)
+            local own = tag ~= nil and tag ~= cloned
+            if not tag then
+                local src = findOtherTag()
+                if src then
+                    tag = src:Clone()
+                    for _, d in tag:GetDescendants() do
+                        if d:IsA("LuaSourceContainer") then d:Destroy() end
+                    end
+                    tag.Name = TAG_NAME
+                    tag.Parent = root
+                    cloned = tag
+                end
+            end
+            if tag and tag:IsA("BillboardGui") then
+                if fallback then pcall(function() fallback:Destroy() end); fallback = nil end
+                styleTag(tag, st, own)
+                return "game"
+            end
+            buildFallback(st)
+            return "fallback"
+        end
+
+        local function release()
+            if hbConn then hbConn:Disconnect(); hbConn = nil end
+            if cloned then pcall(function() cloned:Destroy() end); cloned = nil end
+            if fallback then pcall(function() fallback:Destroy() end); fallback = nil end
+            for inst, props in original do
+                pcall(function() for p, v in props do inst[p] = v end end)
+            end
+            table.clear(original)
+        end
+
+        function BadgeSpoof.apply()
+            s.BadgeSpoof.Enabled = true
+            if hbConn then hbConn:Disconnect(); hbConn = nil end
+            local mode = build()
+            local last = 0
+            hbConn = RunService.Heartbeat:Connect(function()
+                if os.clock() - last < 0.3 then return end
+                last = os.clock()
+                pcall(build) -- keeps it applied if the game rebuilds its nameplate
+            end)
+            if charConn then charConn:Disconnect() end
+            charConn = LocalPlayer.CharacterAdded:Connect(function()
+                table.clear(original)
+                cloned, fallback = nil, nil
+            end)
+            Notify({
+                title = "Badge Spoofer",
+                content = mode == "game"
+                    and ("Applied on the game's own tag: " .. s.BadgeSpoof.Selected)
+                    or (mode == "fallback"
+                        and "No game badge tag found, showing a plain tag. Run 'Scan nameplates' and send me the console output."
+                        or "Respawn and try again (no character yet)."),
+                duration = 5,
+            })
+        end
+
+        function BadgeSpoof.reset()
+            s.BadgeSpoof.Enabled = false
+            if charConn then charConn:Disconnect(); charConn = nil end
+            release()
+        end
+
+        -- Prints every overhead GUI on every player so the real badge tag can be
+        -- identified. Output goes to the console (F9).
+        function BadgeSpoof.scan()
+            local out, n = { "[BadgeSpoof] overhead GUIs on HumanoidRootPart:" }, 0
+            for _, plr in Players:GetPlayers() do
+                local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    for _, g in root:GetChildren() do
+                        if g:IsA("BillboardGui") then
+                            table.insert(out, ("%s -> %s (Enabled=%s)"):format(plr.Name, g.Name, tostring(g.Enabled)))
+                            for _, d in g:GetDescendants() do
+                                if n < 120 and (d:IsA("TextLabel") or d:IsA("ImageLabel")) then
+                                    n += 1
+                                    local extra = d:IsA("TextLabel") and (" text=" .. d.Text) or (" image=" .. d.Image)
+                                    table.insert(out, "    " .. d.ClassName .. " " .. d.Name .. extra)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            print(table.concat(out, "\n"))
+            Notify({ title = "Badge Spoofer", content = "Scan printed to the console (F9).", duration = 3 })
+        end
+    end
+
+    -- ============================================================
+    -- COURT SKIN SPOOFER (Replicator hook + PlayerData fallback)
+    -- ============================================================
+    local function applyCourtSpoofer()
+        local target = Courts[s.CourtSpoofer.CurrentCourt]
+        if not target then
+            Notify({ title = "Court Spoofer", content = "Selected court not found.", duration = 3 })
+            return
+        end
+        if Replicator and OriginalReplicateCourt then
+            Replicator["ReplicateCourt"] = function(Parent, Name)
+                if ownerOfParent(Parent) == LocalPlayer then
+                    local spoofed = Courts[s.CourtSpoofer.CurrentCourt]
+                    if spoofed then Name = spoofed end
+                end
+                return OriginalReplicateCourt(Parent, Name)
+            end
+        end
+        pcall(function()
+            local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+            PlayerData.storedData["Equipping"]["CourtSkin"] = target
+            PlayerData.storedData["Inventory"][target] = 1
+        end)
+        Notify({ title = "Court Spoofer", content = "Applied: " .. s.CourtSpoofer.CurrentCourt, duration = 2.5 })
+    end
+
+    local function resetCourtSpoofer()
+        if Replicator and OriginalReplicateCourt then
+            Replicator["ReplicateCourt"] = OriginalReplicateCourt
+        end
+        pcall(function()
+            local PlayerData = require(ReplicatedStorage.Util.PlayerData)
+            PlayerData.storedData["Equipping"]["CourtSkin"] = nil
+        end)
+    end
+
+    local indicator = Instance.new("BillboardGui")
+    indicator.Name = "RangeIndicator"
+    indicator.Size = UDim2.fromOffset(90, 90)
+    indicator.AlwaysOnTop = true
+    indicator.StudsOffsetWorldSpace = Vector3.new(0, 3.6, 0)
+
+    local indicatorRing = Instance.new("ImageLabel")
+    indicatorRing.Name = "Ring"
+    indicatorRing.Size = UDim2.fromScale(1, 1)
+    indicatorRing.BackgroundTransparency = 1
+    indicatorRing.Image = "rbxassetid://3570695787"
+    indicatorRing.ImageColor3 = Color3.fromRGB(190, 165, 240)
+    indicatorRing.ImageTransparency = 0.15
+    indicatorRing.ScaleType = Enum.ScaleType.Fit
+    indicatorRing.Parent = indicator
+
+    local indicatorDot = Instance.new("Frame")
+    indicatorDot.Name = "Dot"
+    indicatorDot.Size = UDim2.fromOffset(6, 6)
+    indicatorDot.AnchorPoint = Vector2.new(0.5, 0.5)
+    indicatorDot.Position = UDim2.fromScale(0.5, 0.5)
+    indicatorDot.BackgroundColor3 = Color3.fromRGB(190, 165, 240)
+    indicatorDot.BorderSizePixel = 0
+    indicatorDot.Parent = indicator
+    local indicatorDotCorner = Instance.new("UICorner")
+    indicatorDotCorner.CornerRadius = UDim.new(1, 0)
+    indicatorDotCorner.Parent = indicatorDot
+
+    local rangeConnection = nil
+
+    local function applyIndicatorColor()
+        local col = IndicatorColors[s.Visuals.IndicatorColor] or Color3.fromRGB(190, 165, 240)
+        indicatorRing.ImageColor3 = col
+        indicatorDot.BackgroundColor3 = col
+    end
+
+    local function setShotIndicator(value)
+        s.Visuals.ShotIndicator = value
+        if rangeConnection then rangeConnection:Disconnect(); rangeConnection = nil end
+        indicator.Parent = nil
+        if not value then return end
+        local throttle = 0
+        rangeConnection = RunService.Heartbeat:Connect(function(dt)
+            throttle += dt
+            if throttle < 0.05 then return end
+            throttle = 0
+            local character = LocalPlayer.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+            if not root or not hasball(character) then indicator.Parent = nil; return end
+            local goal, distance = nearestgoal(root)
+            if goal and distance >= 12 and distance <= 73 then
+                applyIndicatorColor()
+                if indicator.Parent ~= character then
+                    indicator.Adornee = character
+                    indicator.Parent = character
+                end
+            else
+                indicator.Parent = nil
+            end
+        end)
+        Track(rangeConnection)
+    end
 
     local AURAL_MIN_DIST = 12
     local AURAL_MAX_DIST = 73
@@ -1798,13 +3189,139 @@ end)
     if LocalPlayer.Character then setupCharacterAural(LocalPlayer.Character) end
     addconnection(LocalPlayer.CharacterAdded:Connect(setupCharacterAural))
 
+    local textListeners = {}
+    local originalNameTexts, originalRecordTexts, originalTitleTexts = {}, {}, {}
+
+    local function formatStrokeText(orig, custom)
+        if not custom or custom == "" then return orig end
+        if orig and orig:match("^<stroke>") and orig:match("</stroke>$") then
+            return "<stroke>" .. custom .. "</stroke>"
+        end
+        return custom
+    end
+
+    local function applyOwnNameplate()
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local nameTag = hrp:FindFirstChild("NameTag")
+        if not nameTag or not nameTag:IsA("BillboardGui") then return end
+        for _, tagName in ipairs({"NameTag", "CreatorTag", "TeamSpot"}) do
+            local tag = hrp:FindFirstChild(tagName)
+            if tag and tag:IsA("BillboardGui") then
+                tag.Enabled = not s.Visuals.HideOwnNameplate
+            end
+        end
+        local mainFrame = nameTag:FindFirstChild("MainFrame")
+        local gameFrame = nameTag:FindFirstChild("GameFrame")
+        local subFrame = mainFrame and mainFrame:FindFirstChild("Frame")
+        local nameLabels = {}
+        if mainFrame and mainFrame:FindFirstChild("NameLabel") then table.insert(nameLabels, mainFrame.NameLabel) end
+        if gameFrame and gameFrame:FindFirstChild("NameLabel") then table.insert(nameLabels, gameFrame.NameLabel) end
+        for _, obj in ipairs(nameTag:GetDescendants()) do
+            if obj:IsA("TextLabel") and obj.Name == "NameLabel" and not table.find(nameLabels, obj) then
+                table.insert(nameLabels, obj)
+            end
+        end
+        for _, obj in ipairs(nameLabels) do
+            if not originalNameTexts[obj] then originalNameTexts[obj] = obj.Text end
+            local target = (s.Visuals.CustomNameText ~= "") and s.Visuals.CustomNameText or originalNameTexts[obj]
+            if obj.Text ~= target then obj.Text = target end
+            if not textListeners[obj] then
+                textListeners[obj] = obj:GetPropertyChangedSignal("Text"):Connect(function()
+                    if s.Visuals.CustomNameText ~= "" and obj.Text ~= s.Visuals.CustomNameText then
+                        obj.Text = s.Visuals.CustomNameText
+                    end
+                end)
+            end
+        end
+        local recordLabels = {}
+        if subFrame and subFrame:FindFirstChild("RecordLabel") then table.insert(recordLabels, subFrame.RecordLabel) end
+        for _, obj in ipairs(nameTag:GetDescendants()) do
+            if obj:IsA("TextLabel") and obj.Name == "RecordLabel" and not table.find(recordLabels, obj) then
+                table.insert(recordLabels, obj)
+            end
+        end
+        for _, obj in ipairs(recordLabels) do
+            if not originalRecordTexts[obj] then originalRecordTexts[obj] = obj.Text end
+            local target = formatStrokeText(originalRecordTexts[obj], s.Visuals.CustomRecordText)
+            if obj.Text ~= target then obj.Text = target end
+            if not textListeners[obj] then
+                textListeners[obj] = obj:GetPropertyChangedSignal("Text"):Connect(function()
+                    if s.Visuals.CustomRecordText ~= "" then
+                        local expected = formatStrokeText(originalRecordTexts[obj], s.Visuals.CustomRecordText)
+                        if obj.Text ~= expected then obj.Text = expected end
+                    end
+                end)
+            end
+        end
+        local titleLabels = {}
+        if subFrame and subFrame:FindFirstChild("AchievementName") then table.insert(titleLabels, subFrame.AchievementName) end
+        for _, obj in ipairs(nameTag:GetDescendants()) do
+            if obj:IsA("TextLabel") and (obj.Name == "AchievementName" or obj.Name == "TitleLabel") and not table.find(titleLabels, obj) then
+                table.insert(titleLabels, obj)
+            end
+        end
+        for _, obj in ipairs(titleLabels) do
+            if not originalTitleTexts[obj] then originalTitleTexts[obj] = obj.Text end
+            local target = formatStrokeText(originalTitleTexts[obj], s.Visuals.CustomTitleText)
+            if obj.Text ~= target then obj.Text = target end
+            if not textListeners[obj] then
+                textListeners[obj] = obj:GetPropertyChangedSignal("Text"):Connect(function()
+                    if s.Visuals.CustomTitleText ~= "" then
+                        local expected = formatStrokeText(originalTitleTexts[obj], s.Visuals.CustomTitleText)
+                        if obj.Text ~= expected then obj.Text = expected end
+                    end
+                end)
+            end
+        end
+    end
+
+    local ownNameplateConnection = nil
+
+    local function setupOwnNameplateListener()
+        if ownNameplateConnection then return end
+        local function onChar(char)
+            task.wait(0.2)
+            applyOwnNameplate()
+            local hrp = char:WaitForChild("HumanoidRootPart", 5)
+            if hrp then
+                hrp.ChildAdded:Connect(function(child)
+                    if child:IsA("BillboardGui") then
+                        task.wait(0.05)
+                        applyOwnNameplate()
+                    end
+                end)
+                local nameTag = hrp:WaitForChild("NameTag", 5)
+                if nameTag then
+                    nameTag.DescendantAdded:Connect(function()
+                        task.wait(0.05)
+                        applyOwnNameplate()
+                    end)
+                end
+            end
+        end
+        if LocalPlayer.Character then task.spawn(onChar, LocalPlayer.Character) end
+        ownNameplateConnection = LocalPlayer.CharacterAdded:Connect(onChar)
+        Track(ownNameplateConnection)
+    end
+    setupOwnNameplateListener()
+
     local Window = Airflow:CreateWindow({Name = "ByteWtf", LoadingSubtitle = "Byte On Top", Theme = "FatalBlue", ToggleUIKeybind = "RightControl", ConfigurationSaving = {Enabled = true, FolderName = "FatalLabs", FileName = "FatalLabs"}})
+    pcall(function()
+        local note = (#__compat.missing > 0)
+            and ("Executor: " .. __compat.executor .. ". Missing: " .. table.concat(__compat.missing, ", "))
+            or ("Executor: " .. __compat.executor .. ". All required functions found.")
+        Window:Notify({ title = "Compatibility", content = note, duration = 8 })
+    end)
 
     Notify = function(props) Window:Notify(props) end
 
     local CombatTab = Window:CreateTab({ Name = "Combat", Icon = "swords" })
     local BallTab = Window:CreateTab({ Name = "Ball", Icon = "circle" })
     local MoveTab = Window:CreateTab({ Name = "Movement", Icon = "activity" })
+    local CosmeticsTab = Window:CreateTab({ Name = "Cosmetics", Icon = "eye" })
+    local SafetyTab = Window:CreateTab({ Name = "Safety", Icon = "user" })
 
     CombatTab:CreateSection("Silent Aim")
     CombatTab:CreateToggle({
@@ -1897,6 +3414,19 @@ end)
         Callback = function(v) s.Defending.GuardPrediction = v end,
     })
 
+    CombatTab:CreateSection("Aimbot Range Indicator")
+    CombatTab:CreateToggle({
+        Name = "Aimbot range indicator", Flag = "fatal_ind",
+        CurrentValue = s.Visuals.ShotIndicator,
+        Callback = setShotIndicator,
+    })
+    CombatTab:CreateDropdown({
+        Name = "Indicator color",
+        Options = { "Blue", "Purple", "Green", "Red", "Yellow" },
+        CurrentValue = s.Visuals.IndicatorColor, Flag = "fatal_ind_col",
+        Callback = function(v) s.Visuals.IndicatorColor = v; applyIndicatorColor() end,
+    })
+
     BallTab:CreateSection("Ball Magnet")
     BallTab:CreateToggle({
         Name = "Ball magnet", Flag = "fatal_mag", CurrentValue = s.Ball.BallMags,
@@ -1916,6 +3446,45 @@ end)
             if magnetHitbox then magnetHitbox.Size = Vector3.new(v, v, v) end
         end,
     })
+    BallTab:CreateToggle({
+        Name = "Show magnet visualizer", Flag = "fatal_mag_vis",
+        CurrentValue = s.Ball.BallMagVisualizer,
+        Callback = function(v)
+            s.Ball.BallMagVisualizer = v
+            if magnetHitbox then
+                local box = magnetHitbox:FindFirstChild("FatalMagnetBox")
+                if box then box.Transparency = v and 0.2 or 1 end
+            end
+        end,
+    })
+
+    BallTab:CreateSection("Mag V2")
+    BallTab:CreateToggle({
+        Name = "Mag V2",
+        Desc = "Standalone touch-magnet. Uses its own ball name & reach.",
+        Flag = "fatal_magv2", CurrentValue = s.MagV2.Enabled,
+        Callback = function(v) setMagV2(v) end,
+    })
+    BallTab:CreateKeybind({
+        Name = "Mag V2 keybind", Desc = "Default U. Toggle Mag V2 on/off.",
+        Flag = "fatal_magv2_key", CurrentValue = s.MagV2.Keybind,
+        Callback = function(key)
+            if typeof(key) == "EnumItem" then s.MagV2.Keybind = key end
+        end,
+    })
+    BallTab:CreateInput({
+        Name = "Mag V2 ball name", Placeholder = "Ball",
+        CurrentValue = s.MagV2.BallName, Flag = "fatal_magv2_name",
+        Callback = function(text)
+            if text ~= "" then s.MagV2.BallName = text end
+        end,
+    })
+    BallTab:CreateSlider({
+        Name = "Mag V2 reach", Range = { 1, 100 }, Increment = 1,
+        CurrentValue = s.MagV2.Reach, Flag = "fatal_magv2_reach",
+        Callback = function(v) s.MagV2.Reach = v end,
+    })
+
     BallTab:CreateSection("Ball Reach")
     BallTab:CreateToggle({
         Name = "Ball reach", Flag = "fatal_reach", CurrentValue = s.Ball.BallReach,
@@ -1931,6 +3500,19 @@ end)
         Name = "Reach size", Range = { 1, 30 }, Increment = 1,
         CurrentValue = s.Ball.BallReachRange, Flag = "fatal_reach_size",
         Callback = function(v) s.Ball.BallReachRange = v end,
+    })
+    BallTab:CreateToggle({
+        Name = "Show reach visualizer", Flag = "fatal_reach_vis",
+        CurrentValue = s.Ball.BallReachVisualizer,
+        Callback = function(v)
+            s.Ball.BallReachVisualizer = v
+            if v then
+                enableReach()
+            else
+                removeReachVisualizer()
+                if not s.Ball.BallReach then disableReach() end
+            end
+        end,
     })
 
     buildHVHTab(MoveTab, s.HVH)
@@ -1956,6 +3538,266 @@ end)
         Callback = function(v) s.TPWalk.Speed = v end,
     })
 
+    CosmeticsTab:CreateSection("Body Aura Changer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Select body aura", Options = BodyAura.Names,
+        CurrentValue = s.BodyAura.Selected, Flag = "fatal_bodyaura_sel",
+        Callback = function(v)
+            s.BodyAura.Selected = v
+            if s.BodyAura.Enabled then pcall(BodyAura.apply) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable body aura changer", Flag = "fatal_bodyaura",
+        CurrentValue = s.BodyAura.Enabled,
+        Callback = function(v)
+            if v then pcall(BodyAura.apply) else pcall(BodyAura.reset) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Force aura onto body (clone)",
+        Callback = function() pcall(BodyAura.force) end,
+    })
+
+    CosmeticsTab:CreateSection("Ball Changer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Select ball", Options = #BallNames > 0 and BallNames or { "None" },
+        CurrentValue = s.BallChanger.SelectedBall, Flag = "fatal_ball_sel",
+        Callback = function(v)
+            s.BallChanger.SelectedBall = v
+            s.BallChanger.CurrentBall = v
+            if s.BallChanger.Enabled then pcall(applyBallChanger) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable ball changer", Flag = "fatal_ball",
+        CurrentValue = s.BallChanger.Enabled,
+        Callback = function(v)
+            s.BallChanger.Enabled = v
+            if v then pcall(applyBallChanger) else pcall(resetBallChanger) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Reset ball",
+        Callback = function()
+            s.BallChanger.Enabled = false
+            s.BallChanger.SelectedBall = "ForceField"
+            s.BallChanger.CurrentBall = "ForceField"
+            pcall(resetBallChanger)
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Trail Spoofer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Select trail", Options = #TrailNames > 0 and TrailNames or { "None" },
+        CurrentValue = s.TrailSpoofer.SelectedTrail, Flag = "fatal_trail_sel",
+        Callback = function(v)
+            s.TrailSpoofer.SelectedTrail = v
+            s.TrailSpoofer.CurrentTrail = v
+            if s.TrailSpoofer.Enabled then pcall(applyTrailSpoofer) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable trail spoofer", Flag = "fatal_trail",
+        CurrentValue = s.TrailSpoofer.Enabled,
+        Callback = function(v)
+            s.TrailSpoofer.Enabled = v
+            if v then pcall(applyTrailSpoofer) else pcall(resetTrailSpoofer) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Reset trail",
+        Callback = function()
+            s.TrailSpoofer.Enabled = false
+            s.TrailSpoofer.SelectedTrail = "None"
+            s.TrailSpoofer.CurrentTrail = "None"
+            pcall(resetTrailSpoofer)
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Ball Aura Spoofer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Select aura", Options = #AuraNames > 0 and AuraNames or { "None" },
+        CurrentValue = s.BallAura.SelectedAura, Flag = "fatal_aura_sel",
+        Callback = function(v)
+            s.BallAura.SelectedAura = v
+            s.BallAura.CurrentAura = v
+            if s.BallAura.Enabled then pcall(applyBallAura) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable ball aura spoofer", Flag = "fatal_aura",
+        CurrentValue = s.BallAura.Enabled,
+        Callback = function(v)
+            s.BallAura.Enabled = v
+            if v then pcall(applyBallAura) else pcall(resetBallAura) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Reset ball aura",
+        Callback = function()
+            s.BallAura.Enabled = false
+            s.BallAura.SelectedAura = "None"
+            s.BallAura.CurrentAura = "None"
+            pcall(resetBallAura)
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Goal Effect")
+    local function getEffectNames()
+        local names = {}
+        for k in pairs(Effects) do table.insert(names, k) end
+        table.sort(names)
+        return names
+    end
+    CosmeticsTab:CreateDropdown({
+        Name = "Select effect", Options = getEffectNames(),
+        CurrentValue = s.Goal.SelectedEffect, Flag = "fatal_goal_sel",
+        Callback = function(v)
+            s.Goal.SelectedEffect = v
+            s.Goal.CurrentEffect = v
+            if s.Goal.Enabled then pcall(applyGoalEffect) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable goal effect changer", Flag = "fatal_goal",
+        CurrentValue = s.Goal.Enabled,
+        Callback = function(v)
+            s.Goal.Enabled = v
+            if v then pcall(applyGoalEffect) else pcall(resetGoalEffect) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Reset goal effect",
+        Callback = function()
+            s.Goal.Enabled = false
+            s.Goal.SelectedEffect = "LightRay"
+            s.Goal.CurrentEffect = "LightRay"
+            pcall(resetGoalEffect)
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Court Spoofer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Select court", Options = #CourtNames > 0 and CourtNames or { "None" },
+        CurrentValue = s.CourtSpoofer.SelectedCourt, Flag = "fatal_court_sel",
+        Callback = function(v)
+            s.CourtSpoofer.SelectedCourt = v
+            s.CourtSpoofer.CurrentCourt = v
+            if s.CourtSpoofer.Enabled then pcall(applyCourtSpoofer) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable court spoofer", Flag = "fatal_court",
+        CurrentValue = s.CourtSpoofer.Enabled,
+        Callback = function(v)
+            s.CourtSpoofer.Enabled = v
+            if v then pcall(applyCourtSpoofer) else pcall(resetCourtSpoofer) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Reset court",
+        Callback = function()
+            s.CourtSpoofer.Enabled = false
+            s.CourtSpoofer.SelectedCourt = "None"
+            s.CourtSpoofer.CurrentCourt = "None"
+            pcall(resetCourtSpoofer)
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Nameplate & Title")
+    CosmeticsTab:CreateToggle({
+        Name = "Hide my nameplate & tags", Flag = "fatal_np_hide",
+        CurrentValue = s.Visuals.HideOwnNameplate,
+        Callback = function(v) s.Visuals.HideOwnNameplate = v; applyOwnNameplate() end,
+    })
+    CosmeticsTab:CreateInput({
+        Name = "Custom username", Placeholder = "e.g. Nova",
+        CurrentValue = s.Visuals.CustomNameText, Flag = "fatal_np_name",
+        Callback = function(text)
+            s.Visuals.CustomNameText = text
+            s.Visuals.CustomName = (text ~= "")
+            applyOwnNameplate()
+        end,
+    })
+    CosmeticsTab:CreateInput({
+        Name = "Custom record", Placeholder = "e.g. 99-0",
+        CurrentValue = s.Visuals.CustomRecordText, Flag = "Calm_np_rec",
+        Callback = function(text)
+            s.Visuals.CustomRecordText = text
+            s.Visuals.CustomRecord = (text ~= "")
+            applyOwnNameplate()
+        end,
+    })
+    CosmeticsTab:CreateInput({
+        Name = "Custom title", Placeholder = "e.g. Nova Elite",
+        CurrentValue = s.Visuals.CustomTitleText, Flag = "fatal_np_title",
+        Callback = function(text)
+            s.Visuals.CustomTitleText = text
+            s.Visuals.CustomTitle = (text ~= "")
+            applyOwnNameplate()
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Korblox / Headless")
+    CosmeticsTab:CreateDropdown({
+        Name = "Type", Options = AvatarSpoof.Types,
+        CurrentValue = s.AvatarSpoof.Type, Flag = "fatal_avatar_type",
+        Callback = function(v)
+            s.AvatarSpoof.Type = v
+            if s.AvatarSpoof.Enabled then pcall(AvatarSpoof.apply) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable Korblox / Headless", Flag = "fatal_avatar",
+        CurrentValue = s.AvatarSpoof.Enabled,
+        Callback = function(v)
+            if v then pcall(AvatarSpoof.apply) else pcall(AvatarSpoof.reset) end
+        end,
+    })
+
+    CosmeticsTab:CreateSection("Badge Spoofer")
+    CosmeticsTab:CreateDropdown({
+        Name = "Badge", Options = BadgeSpoof.Names,
+        CurrentValue = s.BadgeSpoof.Selected, Flag = "fatal_badgetag_sel",
+        Callback = function(v)
+            s.BadgeSpoof.Selected = v
+            if s.BadgeSpoof.Enabled then pcall(BadgeSpoof.apply) end
+        end,
+    })
+    CosmeticsTab:CreateToggle({
+        Name = "Enable badge spoofer", Flag = "fatal_badge",
+        CurrentValue = s.BadgeSpoof.Enabled,
+        Callback = function(v)
+            if v then pcall(BadgeSpoof.apply) else pcall(BadgeSpoof.reset) end
+        end,
+    })
+    CosmeticsTab:CreateButton({
+        Name = "Scan nameplates (debug)",
+        Callback = function() pcall(BadgeSpoof.scan) end,
+    })
+
+    SafetyTab:CreateSection("Device Spoofer")
+    SafetyTab:CreateToggle({
+        Name = "Device spoofer", Flag = "fatal_dev", CurrentValue = s.Misc.DeviceSpoofer,
+        Callback = function(v) s.Misc.DeviceSpoofer = v; SpoofDevice() end,
+    })
+    SafetyTab:CreateDropdown({
+        Name = "Device", Options = { "PC", "Mobile", "Gamepad" },
+        CurrentValue = s.Misc.Device, Flag = "fatal_dev_sel",
+        Callback = function(v) s.Misc.Device = v; SpoofDevice() end,
+    })
+
+    SafetyTab:CreateSection("Anti Moderator")
+    SafetyTab:CreateToggle({
+        Name = "Anti moderator", Desc = "Notifies when a moderator is in the server.",
+        Flag = "fatal_mod", CurrentValue = s.Misc.AntiModerator,
+        Callback = function(v)
+            s.Misc.AntiModerator = v
+            if v then startAntiMod() else stopAntiMod() end
+        end,
+    })
+
     setAural = function(on)
         s.Shooting.AuralEnabled = (on == nil) and (not s.Shooting.AuralEnabled) or on
         MobileRefresh()
@@ -1978,6 +3820,11 @@ end)
     setTPWalk = function(on)
         s.TPWalk.Enabled = (on == nil) and (not s.TPWalk.Enabled) or on
         if s.TPWalk.Enabled then enableTPWalk() else disableTPWalk() end
+        MobileRefresh()
+    end
+    setMagV2 = function(on)
+        s.MagV2.Enabled = (on == nil) and (not s.MagV2.Enabled) or on
+        if s.MagV2.Enabled then enableMagV2() else disableMagV2() end
         MobileRefresh()
     end
 
@@ -2010,6 +3857,10 @@ end)
         if gpe then return end
         if input.KeyCode == s.TPWalk.Keybind then setTPWalk() end
     end)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == s.MagV2.Keybind then setMagV2() end
+    end)
 
     if isMobile then
         local ScreenGui = Instance.new("ScreenGui")
@@ -2025,8 +3876,8 @@ end)
 
         local Panel = Instance.new("Frame")
         Panel.Name = "Panel"
-        Panel.Size = UDim2.fromOffset(52, 270)
-        Panel.Position = UDim2.new(1, -64, 0.5, -135)
+        Panel.Size = UDim2.fromOffset(52, 320)
+        Panel.Position = UDim2.new(1, -64, 0.5, -160)
         Panel.BackgroundTransparency = 1
         Panel.Parent = ScreenGui
 
@@ -2063,8 +3914,9 @@ end)
         local Aim, AimS = makeButton("Aim", 1, function() setAural() end, s.Shooting.AuralEnabled)
         local Guard, GuardS = makeButton("Guard", 2, function() setGuard() end, s.Defending.AutoGuard)
         local Mag, MagS = makeButton("Mag", 3, function() setMagnet() end, s.Ball.BallMags)
-        local Reach, ReachS = makeButton("Reach", 4, function() setReach() end, s.Ball.BallReach)
-        local TPW, TPWS = makeButton("TPWalk", 5, function() setTPWalk() end, s.TPWalk.Enabled)
+        local MagV2, MagV2S = makeButton("MagV2", 4, function() setMagV2() end, s.MagV2.Enabled)
+        local Reach, ReachS = makeButton("Reach", 5, function() setReach() end, s.Ball.BallReach)
+        local TPW, TPWS = makeButton("TPWalk", 6, function() setTPWalk() end, s.TPWalk.Enabled)
 
         local function paint(btn, stroke, on)
             btn.BackgroundColor3 = on and Color3.fromRGB(190, 165, 240) or Color3.fromRGB(26, 26, 28)
@@ -2076,6 +3928,7 @@ end)
             paint(Aim, AimS, s.Shooting.AuralEnabled)
             paint(Guard, GuardS, s.Defending.AutoGuard)
             paint(Mag, MagS, s.Ball.BallMags)
+            paint(MagV2, MagV2S, s.MagV2.Enabled)
             paint(Reach, ReachS, s.Ball.BallReach)
             paint(TPW, TPWS, s.TPWalk.Enabled)
         end
@@ -2111,10 +3964,22 @@ end)
     OnCleanup(function()
         pcall(disableAutoGuard)
         pcall(disableMagnet)
+        pcall(disableMagV2)
         pcall(disableReach)
         pcall(disableTPWalk)
         pcall(hvhResetAll)
         pcall(hvhStop)
+        pcall(resetBallChanger)
+        pcall(resetTrailSpoofer)
+        pcall(resetBallAura)
+        pcall(BodyAura.reset)
+        pcall(AvatarSpoof.reset)
+        pcall(BadgeSpoof.reset)
+        pcall(function() releaseAuraHook(true) end)
+        pcall(resetGoalEffect)
+        pcall(resetCourtSpoofer)
+        pcall(stopAntiMod)
+        pcall(function() setShotIndicator(false) end)
         for _, c in Cleanup.conns do pcall(function() c:Disconnect() end) end
     end)
 end
