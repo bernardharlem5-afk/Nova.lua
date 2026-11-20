@@ -1,9 +1,3 @@
--- ===== LOAD MUSIC =====
--- Paste a Roblox audio ID (numbers only, keep the quotes) to play it when the UI finishes loading.
--- Leave it as "0" for no music.
-local LOAD_MUSIC_ID     = "140532505820903"
-local LOAD_MUSIC_VOLUME = 0.6
-
 -- ============================================================
 -- BYTE.WTF UI  (drop-in replacement for the Airflow API)
 -- Supports: CreateWindow, CreateTab, CreateSection, CreateToggle,
@@ -387,7 +381,7 @@ local Airflow = (function()
             BorderSizePixel = 0, ClipsDescendants = true, Parent = sidebar,
         }, { corner(14), stroke(C.Stroke) })
         if logo then
-            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Crop, Parent = brand }, { corner(14) })
+            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Fit, Parent = brand })
         else
             text(brand, { Text = "B", TextSize = 26, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Size = UDim2.fromScale(1, 1) })
         end
@@ -480,58 +474,16 @@ local Airflow = (function()
             if gp then return end
             if toggleKey and i.KeyCode == toggleKey then toggleUI() end
         end)
-        local function hideUI() if not uiReady then return end closePopup(); root.Visible = false end
-
-        -- floating circle that reopens the menu (shown whenever the window is hidden)
-        local openBtn = new("TextButton", {
-            Size = UDim2.fromOffset(50, 50), Position = UDim2.new(0, 18, 0.5, -25), BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-            Text = "", AutoButtonColor = false, Visible = false, ZIndex = 60, ClipsDescendants = true, Parent = gui,
-        }, { corner(25), stroke(C.StrokeLt, 1.5) })
-        if logo then
-            new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = logo, ScaleType = Enum.ScaleType.Crop, ZIndex = 61, Parent = openBtn }, { corner(25) })
-        else
-            text(openBtn, { Text = "B", TextSize = 20, FontFace = font(Enum.FontWeight.Bold), TextColor3 = Color3.new(1, 1, 1), Size = UDim2.fromScale(1, 1), ZIndex = 61 })
-        end
-        local function syncOpenBtn() openBtn.Visible = uiReady and not root.Visible end
-        root:GetPropertyChangedSignal("Visible"):Connect(syncOpenBtn)
-        syncOpenBtn()
-        do -- click opens, drag moves
-            local down, moved, startIn, startPos
-            openBtn.InputBegan:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                    down, moved, startIn, startPos = true, false, i.Position, openBtn.Position
-                end
-            end)
-            UIS.InputChanged:Connect(function(i)
-                if down and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                    local d = i.Position - startIn
-                    if moved or d.Magnitude > 6 then
-                        moved = true
-                        openBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-                    end
-                end
-            end)
-            UIS.InputEnded:Connect(function(i)
-                if down and (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) then
-                    down = false
-                    if not moved then toggleUI() end
-                end
-            end)
-        end
-
-        local function playLoadMusic()
-            local id = tostring(LOAD_MUSIC_ID):gsub("%D", "")
-            if id == "" or tonumber(id) == 0 then return end
-            pcall(function()
-                local snd = Instance.new("Sound")
-                snd.Name = "ByteWTF_LoadMusic"
-                snd.SoundId = "rbxassetid://" .. id
-                snd.Volume = LOAD_MUSIC_VOLUME
-                snd.Looped = false
-                snd.Parent = game:GetService("SoundService")
-                snd.Ended:Connect(function() snd:Destroy() end)
-                snd:Play()
-            end)
+        if isMobile then
+            local b = new("TextButton", {
+                Size = UDim2.fromOffset(40, 40), Position = UDim2.new(0, 14, 0.5, -20), BackgroundColor3 = C.Panel, Text = "UI",
+                TextColor3 = C.Accent, TextSize = 14, FontFace = font(Enum.FontWeight.Bold), AutoButtonColor = false, Parent = gui,
+            }, { corner(20), stroke(C.StrokeLt) })
+            if logo then
+                b.Text = ""
+                new("ImageLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = logo, Parent = b })
+            end
+            b.MouseButton1Click:Connect(toggleUI)
         end
 
         -- loading screen
@@ -573,10 +525,7 @@ local Airflow = (function()
                 root.Visible = true
                 uiReady = true
                 tween(uiScale, 0.22, { Scale = calcScale() })
-                playLoadMusic()
             end)
-        else
-            playLoadMusic()
         end
 
         -- notifications
@@ -1159,8 +1108,11 @@ local Airflow = (function()
         end
 
         -- minimize / close
-        minB.MouseButton1Click:Connect(hideUI)
-        closeB.MouseButton1Click:Connect(hideUI)
+        minB.MouseButton1Click:Connect(function()
+            toggleUI()
+            Window:Notify({ title = "Minimized", content = "Press " .. (toggleKey and toggleKey.Name or "the UI button") .. " to open the menu again", duration = 3 })
+        end)
+        closeB.MouseButton1Click:Connect(function() gui:Destroy() end)
 
 
         -- ===== theme API + ready-made Theme tab =====
